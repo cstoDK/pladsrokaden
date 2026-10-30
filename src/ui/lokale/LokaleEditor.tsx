@@ -11,9 +11,10 @@ import {
   foreslaaIndstillinger,
   lavLokale,
   normaliserLokale,
+  sugSammen,
   tilpasStoerrelse,
 } from '../../core/lokale';
-import { type Bord, type Klasse, type Lokale, type Vaeg, MOBILSKAB, antalPladser, bordBredde, bordHoejde, forresteBorde, nyId } from '../../core/model';
+import { type Bord, type Klasse, type Lokale, type Vaeg, MOBILSKAB, antalPladser, bordBredde, bordHoejde, bordRaekker, forresteBorde, nyId } from '../../core/model';
 import { belaegning } from '../../core/optimering';
 import { opdater, useData } from '../../app/tilstand';
 import { Tavle, pos } from '../plan/Lokaletegning';
@@ -190,6 +191,8 @@ function RumEditor(props: {
   const traek = useRef<{ x0: number; y0: number; start: Lokale; flyttet: boolean } | null>(null);
   const seneste = useRef({ l, stak });
   seneste.current = { l, stak };
+  const valgtRef = useRef<Valgt>(null);
+  valgtRef.current = valgt;
 
   useEffect(() => {
     const el = ramme.current;
@@ -271,8 +274,12 @@ function RumEditor(props: {
   // Træk med mus eller finger (Pointer Events).
   function startTraek(e: PointerEvent, v: Valgt) {
     if (e.button !== 0) return;
+    // Forhindrer, at browseren markerer tekst eller starter sit eget træk (som afbryder vores).
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).focus();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     traek.current = { x0: e.clientX, y0: e.clientY, start: structuredClone(l), flyttet: false };
+    valgtRef.current = v;
     setValgt(v);
   }
   function under(e: PointerEvent, v: Valgt) {
@@ -289,7 +296,12 @@ function RumEditor(props: {
   function slutTraek() {
     const t = traek.current;
     traek.current = null;
-    if (t?.flyttet) aendr(structuredClone(seneste.current.l), undefined, t.start);
+    if (!t?.flyttet) return;
+    const ny = structuredClone(seneste.current.l);
+    const v = valgtRef.current;
+    if (v?.type === 'bord' && sugSammen(ny, v.id)) {
+      aendr(ny, 'Bordet står nu sammen med nabobordet.', t.start);
+    } else aendr(ny, undefined, t.start);
   }
 
   function tast(e: KeyboardEvent, v: Valgt) {
@@ -324,17 +336,19 @@ function RumEditor(props: {
   const forrest = forresteBorde(l);
   const pladser = antalPladser(l);
   const mangler = props.antalElever - pladser;
-  const alene = mangler <= 0 && belaegning(l.borde.map((b) => b.pladser), props.antalElever).includes(1);
+  const raekker = bordRaekker(l);
+  const alene = mangler <= 0 && belaegning(raekker.map((r) => r.reduce((sum, b) => sum + b.pladser, 0)), props.antalElever).includes(1);
   const overlap = overlapper(l);
   const [tilpas, setTilpas] = useState(false);
 
   return (
     <section class="kort" aria-labelledby="rum-titel">
       <h2 id="rum-titel">Indret lokalet</h2>
-      <p class="hjaelp">
-        Træk bordene, tavlen og mobilskabet derhen, hvor de står. Tryk på et bord for at ændre antal pladser eller dreje det. Med
-        tastaturet: vælg med Tab, og flyt med piletasterne.
-      </p>
+      <div class="meddelelse meddelelse-ok">
+        <strong>Tag fat i et bord, tavlen eller mobilskabet med musen (eller fingeren), og træk det på plads.</strong> Slipper du et bord
+        tæt på enden af et andet, sættes de sammen, så de danner én række. Tryk på et bord for at ændre antal pladser eller dreje det.
+        Med tastaturet: vælg med Tab, og flyt med piletasterne.
+      </div>
       <div class="vaerktoejer">
         <button class="knap" type="button" onClick={tilfoejBord}>
           Tilføj bord
@@ -374,25 +388,11 @@ function RumEditor(props: {
             onPointerDown={(e) => startTraek(e, { type: 'tavle' })}
             onPointerMove={(e) => under(e, { type: 'tavle' })}
             onPointerUp={slutTraek}
+                onPointerCancel={slutTraek}
             onKeyDown={(e) => tast(e, { type: 'tavle' })}
             onClick={() => setValgt({ type: 'tavle' })}
           />
           <Tavle lokale={l} />
-          {l.mobilskab && (
-            <button
-              type="button"
-              class={`flytbar mobilskab${valgt?.type === 'skab' ? ' valgt' : ''}`}
-              style={pos(l.mobilskab.x, l.mobilskab.y, MOBILSKAB.bredde, MOBILSKAB.hoejde)}
-              aria-label="Mobilskab. Flyt med piletasterne."
-              onPointerDown={(e) => startTraek(e, { type: 'skab' })}
-              onPointerMove={(e) => under(e, { type: 'skab' })}
-              onPointerUp={slutTraek}
-              onKeyDown={(e) => tast(e, { type: 'skab' })}
-              onClick={() => setValgt({ type: 'skab' })}
-            >
-              Mobilskab
-            </button>
-          )}
           {l.borde.map((b, i) => {
             const v: Valgt = { type: 'bord', id: b.id };
             const erValgt = valgt?.type === 'bord' && valgt.id === b.id;
@@ -407,6 +407,7 @@ function RumEditor(props: {
                 onPointerDown={(e) => startTraek(e, v)}
                 onPointerMove={(e) => under(e, v)}
                 onPointerUp={slutTraek}
+                onPointerCancel={slutTraek}
                 onKeyDown={(e) => tast(e, v)}
                 onClick={() => setValgt(v)}
               >
@@ -417,6 +418,22 @@ function RumEditor(props: {
               </button>
             );
           })}
+          {l.mobilskab && (
+            <button
+              type="button"
+              class={`flytbar mobilskab${valgt?.type === 'skab' ? ' valgt' : ''}`}
+              style={pos(l.mobilskab.x, l.mobilskab.y, MOBILSKAB.bredde, MOBILSKAB.hoejde)}
+              aria-label="Mobilskab. Flyt med piletasterne."
+              onPointerDown={(e) => startTraek(e, { type: 'skab' })}
+              onPointerMove={(e) => under(e, { type: 'skab' })}
+              onPointerUp={slutTraek}
+                onPointerCancel={slutTraek}
+              onKeyDown={(e) => tast(e, { type: 'skab' })}
+              onClick={() => setValgt({ type: 'skab' })}
+            >
+              Mobilskab
+            </button>
+          )}
         </div>
       </div>
       <p class="skjult" aria-live="polite">
@@ -486,7 +503,7 @@ function RumEditor(props: {
         )}
         {alene && (
           <p class="meddelelse meddelelse-bemaerk" style={{ margin: '0.75rem 0 0' }}>
-            Med denne opstilling må én elev sidde alene. Giv ét bord en plads mere, så kan alle sidde sammen med nogen.
+            Med denne opstilling må én elev sidde alene. Giv ét bord en plads mere, eller sæt to borde sammen, så kan alle sidde sammen med nogen.
           </p>
         )}
         {overlap && (
@@ -559,6 +576,10 @@ function ByggForfra(props: { antalElever: number; onByg: (ind: LokaleIndstilling
         <Taeller label="Pladser pr. bord" vaerdi={ind.pladserPrBord} min={1} max={MAKS_PLADSER_PR_BORD} onSaet={(v) => setInd({ ...ind, pladserPrBord: v })} />
         <Taeller label="Borde pr. række" vaerdi={ind.bordePrRaekke} min={1} max={Math.max(1, ind.antalBorde)} onSaet={(v) => setInd({ ...ind, bordePrRaekke: v })} />
       </div>
+      <label class="afkryds">
+        <input type="checkbox" checked={!!ind.toOgTo} onChange={(e) => setInd({ ...ind, toOgTo: e.currentTarget.checked })} />
+        Sæt bordene sammen to og to
+      </label>
       <button class="knap" type="button" onClick={() => props.onByg(ind)}>
         Byg {ind.antalBorde} borde med {ind.pladserPrBord} pladser
       </button>

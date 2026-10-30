@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { fraDybeBorde, fjernTomPlads, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
-import { forresteBorde } from './model';
+import { flytMobilskabFri, fraDybeBorde, fjernTomPlads, sugSammen, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
+import { bordRaekker, forresteBorde, staarSammen } from './model';
 
 describe('lavLokale', () => {
   it('lægger borde i rækker med tavlen øverst og et mobilskab', () => {
@@ -11,6 +11,38 @@ describe('lavLokale', () => {
     expect(l.mobilskab).not.toBeNull();
     expect(l.bredde).toBeGreaterThanOrEqual(16);
   });
+});
+
+describe('borde, der står sammen', () => {
+  it('borde à 2 stilles to og to, og hvert par danner én række', () => {
+    const l = lavLokale({ antalBorde: 6, pladserPrBord: 2, bordePrRaekke: 6, toOgTo: true });
+    expect(l.borde.map((b) => b.x)).toEqual([1, 3, 6, 8, 11, 13]);
+    expect(bordRaekker(l).map((r) => r.length)).toEqual([2, 2, 2]);
+  });
+  it('kun borde kant i kant i samme retning står sammen', () => {
+    const l = lavLokale({ antalBorde: 3, pladserPrBord: 2, bordePrRaekke: 3 });
+    expect(bordRaekker(l).map((r) => r.length)).toEqual([1, 1, 1]);
+    l.borde[1]!.x = l.borde[0]!.x + 2;
+    expect(bordRaekker(l).map((r) => r.length)).toEqual([2, 1]);
+    l.borde[1]!.lodret = true;
+    expect(staarSammen(l.borde[0]!, l.borde[1]!)).toBe(false);
+  });
+});
+
+it('mobilskabet flyttes fri, hvis det står oven i et bord', () => {
+  const l = lavLokale({ antalBorde: 2, pladserPrBord: 4, bordePrRaekke: 1 });
+  l.mobilskab = { x: l.borde[1]!.x, y: l.borde[1]!.y };
+  flytMobilskabFri(l);
+  expect(l.mobilskab.y).toBeGreaterThanOrEqual(l.borde[1]!.y + 0.6);
+});
+
+it('et bord, der slippes tæt på et andet, sættes kant i kant', () => {
+  const l = lavLokale({ antalBorde: 2, pladserPrBord: 2, bordePrRaekke: 2 });
+  l.borde[1]!.x = l.borde[0]!.x + 2.5;
+  l.borde[1]!.y = l.borde[0]!.y + 0.3;
+  expect(sugSammen(l, l.borde[1]!.id)).toBe(true);
+  expect([l.borde[1]!.x, l.borde[1]!.y]).toEqual([l.borde[0]!.x + 2, l.borde[0]!.y]);
+  expect(bordRaekker(l)).toHaveLength(1);
 });
 
 describe('forresteBorde', () => {
@@ -57,7 +89,7 @@ describe('størrelse og rækkefølge', () => {
   it('foreslår opstillinger ud fra klassens størrelse', () => {
     expect(foreslaaIndstillinger('raekker', 31)).toEqual({ antalBorde: 3, pladserPrBord: 11, bordePrRaekke: 1 });
     expect(foreslaaIndstillinger('fire', 31)).toEqual({ antalBorde: 8, pladserPrBord: 4, bordePrRaekke: 3 });
-    expect(foreslaaIndstillinger('par', 9)).toMatchObject({ antalBorde: 5, pladserPrBord: 2 });
+    expect(foreslaaIndstillinger('par', 9)).toMatchObject({ antalBorde: 5, pladserPrBord: 2, toOgTo: true });
   });
 });
 

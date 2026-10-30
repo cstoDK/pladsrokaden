@@ -493,7 +493,7 @@ body.tavle-aaben { overflow: hidden; }
 
 /* ---------- Lokale-editor ---------- */
 
-.lokale.editor .rum { touch-action: none; font-size: 13px; }
+.lokale.editor .rum { touch-action: none; font-size: 13px; user-select: none; -webkit-user-select: none; }
 .handlingsbar.fast { position: static; }
 .flytbar { cursor: grab; padding: 0; font: inherit; color: inherit; touch-action: none; }
 .flytbar:active { cursor: grabbing; }
@@ -512,3 +512,8 @@ body.tavle-aaben { overflow: hidden; }
 .mini-bord { display: flex; gap: 1px; padding: 2px; border: 1px solid var(--kant-staerk); border-radius: 2px; }
 .mini-bord span { width: 7px; height: 7px; background: var(--kant-staerk); border-radius: 1px; display: block; }
 .mellemoverskrift { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; }
+
+.mobilskab { z-index: 3; }
+.afkryds { display: flex; align-items: center; gap: 0.5rem; font-weight: 400; min-height: var(--trykflade); margin: 0.5rem 0; }
+.afkryds input { width: 1.25rem; height: 1.25rem; accent-color: var(--accent); }
+.flytbar.bord:hover { box-shadow: 0 0 0 3px var(--accent-svag); }

@@ -11,7 +11,7 @@
 import { bygHistorik, parNoegle } from './historik';
 import { type Elev, type ElevId, type Laas, type Lokale, type Placering, type Plan, antalPladser, forresteBorde } from './model';
 import { type Rng, bland, heltal, lavRng } from './rng';
-import { inddelPladser } from './struktur';
+import { inddelPladser, raekkePladser } from './struktur';
 
 export interface Vaegte {
   /** Pr. tidligere gang forrest, for en elev ved et forreste bord. */
@@ -151,7 +151,7 @@ export function lavPlacering(input: OptimeringsInput): OptimeringsResultat {
 /** Samlet straf for en given placering (bruges i tests). Inddelingen udledes af placeringen. */
 export function beregnStraf(input: OptimeringsInput, placering: Placering): number {
   const v: Vaegte = { ...STANDARDVAEGTE, ...input.vaegte };
-  const optagne = input.lokale.borde.map((b) => (placering[b.id] ?? []).map((e, i) => (e ? i : -1)).filter((i) => i >= 0));
+  const optagne = raekkePladser(input.lokale).map((r) => r.map((p, i) => (placering[p.bordId]?.[p.plads] ? i : -1)).filter((i) => i >= 0));
   const p = forbered(input, v, optagne);
   const idx = new Map(input.elever.map((e, i) => [e.id, i]));
   const t = new Int32Array(p.pladser.length).fill(-1);
@@ -175,6 +175,7 @@ interface Forberedt {
   pladsBord: Int32Array;
   /** Grupper: listen af par, hvert par er en liste af pladsindeks. */
   grupper: { bord: number; forrest: boolean; par: number[][]; alle: number[] }[];
+  /** Pladserne i hver række (borde, der står sammen). "Hold adskilt" gælder rækken. */
   bordPladser: number[][];
   koen: Uint8Array;
   andelDrenge: number;
@@ -210,40 +211,45 @@ function forbered(input: OptimeringsInput, v: Vaegte, fasteOptagne?: number[][])
     laase.push({ e, bord: b, nr: l.plads });
   }
 
-  // Hvilke pladser er optaget ved hvert bord: de første, så de tomme er i enden.
+  // Borde, der står kant i kant, er én række. Hvilke pladser i hver række
+  // er optaget: de første, så de tomme er i enden.
+  const bordIndeks = new Map(lokale.borde.map((b, i) => [b.id, i]));
+  const raekker = raekkePladser(lokale).map((r) => r.map((p) => ({ bord: bordIndeks.get(p.bordId)!, nr: p.plads })));
   let optagne = fasteOptagne;
   if (!optagne) {
-    const antalLaast = lokale.borde.map((_, b) => laase.filter((l) => l.bord === b).length);
-    const bel = belaegning(lokale.borde.map((b) => b.pladser), n, antalLaast);
-    optagne = lokale.borde.map((bord, b) => {
-      const laasteNr = laase.filter((l) => l.bord === b).map((l) => l.nr);
-      const valgt = new Set(laasteNr);
-      for (let i = 0; i < bord.pladser && valgt.size < bel[b]!; i++) valgt.add(i);
+    const laastI = (r: number) =>
+      raekker[r]!.map((p, i) => (laase.some((l) => l.bord === p.bord && l.nr === p.nr) ? i : -1)).filter((i) => i >= 0);
+    const bel = belaegning(raekker.map((r) => r.length), n, raekker.map((_, r) => laastI(r).length));
+    optagne = raekker.map((r, ri) => {
+      const valgt = new Set(laastI(ri));
+      for (let i = 0; i < r.length && valgt.size < bel[ri]!; i++) valgt.add(i);
       return [...valgt].sort((x, y) => x - y);
     });
   }
 
   const pladser: { bord: number; nr: number }[] = [];
   const grupper: Forberedt['grupper'] = [];
-  const bordPladser: number[][] = lokale.borde.map(() => []);
+  const bordPladser: number[][] = raekker.map(() => []);
   const pladsGruppe: number[] = [];
   const pladsBord: number[] = [];
   const pladsIndeks = new Map<string, number>();
-  optagne.forEach((liste, b) => {
+  optagne.forEach((liste, ri) => {
     for (const g of inddelPladser(liste)) {
       const gi = grupper.length;
       const par = g.map((pp) =>
-        pp.map((nr) => {
+        pp.map((i) => {
+          const pl = raekker[ri]![i]!;
           const s = pladser.length;
-          pladser.push({ bord: b, nr });
+          pladser.push(pl);
           pladsGruppe.push(gi);
-          pladsBord.push(b);
-          bordPladser[b]!.push(s);
-          pladsIndeks.set(`${b}#${nr}`, s);
+          pladsBord.push(ri);
+          bordPladser[ri]!.push(s);
+          pladsIndeks.set(`${pl.bord}#${pl.nr}`, s);
           return s;
         }),
       );
-      grupper.push({ bord: b, forrest: forrest.has(lokale.borde[b]!.id), par, alle: par.flat() });
+      const foerste = pladser[par[0]![0]!]!;
+      grupper.push({ bord: ri, forrest: forrest.has(lokale.borde[foerste.bord]!.id), par, alle: par.flat() });
     }
   });
 
@@ -360,7 +366,7 @@ function gruppeStraf(p: Forberedt, t: Int32Array, gi: number): number {
   return straf;
 }
 
-/** "Hold adskilt" gælder hele bordet. */
+/** "Hold adskilt" gælder hele bordet (og borde, der står sammen med det). */
 function bordStraf(p: Forberedt, t: Int32Array, b: number): number {
   const pl = p.bordPladser[b]!;
   let straf = 0;

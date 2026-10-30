@@ -41,7 +41,9 @@ export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: 
   }, []);
 
   if (redigerer && k.kladde) {
-    return <KladdeEditor klasse={k} lokale={props.lokale} kladde={k.kladde} foersteGang={props.foersteGang} onLuk={() => setRedigerer(false)} />;
+    return (
+      <KladdeEditor klasse={k} lokale={props.lokale} kladde={k.kladde} foersteGang={props.foersteGang} onLuk={() => setRedigerer(false)} onRetLokale={props.onRetLokale} />
+    );
   }
 
   const plan = k.planer[k.planer.length - 1];
@@ -49,6 +51,9 @@ export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: 
     <div>
       <div class="planhoved">
         <h1>{plan ? planTitel(plan.dato) : 'Ingen plan endnu'}</h1>
+        <button class="knap knap-stor" type="button" onClick={props.onRetLokale}>
+          Flyt borde
+        </button>
         <button class="knap knap-primaer knap-stor" type="button" onClick={nyPlan}>
           {k.kladde ? 'Fortsæt med kladden' : 'Lav ny plan'}
         </button>
@@ -130,7 +135,7 @@ export function Statusliste(props: { status: { niveau: string; tekst: string }[]
 
 // ----------------------------------------------------------------------
 
-function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; foersteGang?: boolean; onLuk: () => void }) {
+function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; foersteGang?: boolean; onLuk: () => void; onRetLokale: () => void }) {
   const k = props.klasse;
   const kladde = props.kladde;
   const [valgt, setValgt] = useState<Plads | null>(null);
@@ -308,6 +313,9 @@ function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; f
         </button>
         <button class="knap" type="button" onClick={nytForslag}>
           Nyt forslag
+        </button>
+        <button class="knap" type="button" onClick={props.onRetLokale}>
+          Flyt borde
         </button>
         <span class="afstand" />
         {!props.foersteGang && (

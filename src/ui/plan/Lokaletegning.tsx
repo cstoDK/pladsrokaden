@@ -98,11 +98,6 @@ export function Lokaletegning(props: Props) {
 
       <div class="rum" style={rumStil}>
         <Tavle lokale={lokale} />
-        {lokale.mobilskab && (
-          <div class="mobilskab" style={pos(lokale.mobilskab.x, lokale.mobilskab.y, MOBILSKAB.bredde, MOBILSKAB.hoejde)}>
-            Mobilskab
-          </div>
-        )}
         {lokale.borde.map((bord, bi) => {
           const pladser = placering?.[bord.id] ?? new Array(bord.pladser).fill(null);
           const erForrest = forrest.has(bord.id);
@@ -185,6 +180,11 @@ export function Lokaletegning(props: Props) {
             </div>
           );
         })}
+        {lokale.mobilskab && (
+          <div class="mobilskab" style={pos(lokale.mobilskab.x, lokale.mobilskab.y, MOBILSKAB.bredde, MOBILSKAB.hoejde)}>
+            Mobilskab
+          </div>
+        )}
       </div>
     </div>
   );

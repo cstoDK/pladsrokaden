@@ -14,13 +14,15 @@ export interface Skabelon {
 export const SKABELONER: Skabelon[] = [
   { id: 'raekker', navn: 'Lange rækker', beskrivelse: 'Borde i lange rækker' },
   { id: 'fire', navn: 'Borde à 4', beskrivelse: 'Én netværksgruppe pr. bord' },
-  { id: 'par', navn: 'Borde à 2', beskrivelse: 'Ét makkerpar pr. bord' },
+  { id: 'par', navn: 'Borde à 2', beskrivelse: 'Sat sammen to og to: rækker á 4' },
 ];
 
 export interface LokaleIndstillinger {
   antalBorde: number;
   pladserPrBord: number;
   bordePrRaekke: number;
+  /** Stil bordene sammen to og to (fx to borde à 2 = en række på 4). */
+  toOgTo?: boolean;
 }
 
 export const MAKS_BORDE = 40;
@@ -42,7 +44,7 @@ export function foreslaaIndstillinger(skabelon: SkabelonId, antalElever: number)
     return { antalBorde: antal, pladserPrBord: 4, bordePrRaekke: Math.min(3, antal) };
   }
   const antal = Math.ceil(n / 2);
-  return { antalBorde: antal, pladserPrBord: 2, bordePrRaekke: Math.min(4, antal) };
+  return { antalBorde: antal, pladserPrBord: 2, bordePrRaekke: Math.min(6, antal), toOgTo: true };
 }
 
 /** Bygger et lokale med borde i rækker og tavlen øverst. */
@@ -54,7 +56,8 @@ export function lavLokale(ind: LokaleIndstillinger, navn = ''): Lokale {
   for (let i = 0; i < antal; i++) {
     const raekke = Math.floor(i / prRaekke);
     const kolonne = i % prRaekke;
-    borde.push({ id: nyId(), x: MARGIN + kolonne * (pladser + 1), y: RAEKKE_START + raekke * RAEKKE_AFSTAND, pladser, lodret: false });
+    const x = ind.toOgTo ? MARGIN + Math.floor(kolonne / 2) * (2 * pladser + 1) + (kolonne % 2) * pladser : MARGIN + kolonne * (pladser + 1);
+    borde.push({ id: nyId(), x, y: RAEKKE_START + raekke * RAEKKE_AFSTAND, pladser, lodret: false });
   }
   const l: Lokale = {
     id: nyId(),
@@ -147,6 +150,50 @@ export function fraDybeBorde(l: Lokale): void {
   l.bredde = 0;
   l.hoejde = 0;
   tilpasStoerrelse(l);
+}
+
+/**
+ * Står mobilskabet oven i et bord (fx efter en opdatering af tegningen),
+ * flyttes det fri: bag det bageste bord ved venstre væg.
+ */
+export function flytMobilskabFri(l: Lokale): void {
+  const m = l.mobilskab;
+  if (!m) return;
+  const overlapper = (x: number, y: number) =>
+    l.borde.some((b) => x < b.x + bordBredde(b) && b.x < x + MOBILSKAB.bredde && y < b.y + bordHoejde(b) && b.y < y + MOBILSKAB.hoejde);
+  if (!overlapper(m.x, m.y)) return;
+  const bagest = l.tavle.vaeg === 'bund' ? 0.5 : Math.max(0, ...l.borde.map((b) => b.y + bordHoejde(b))) + 0.6;
+  l.mobilskab = { x: MARGIN, y: bagest };
+  if (overlapper(l.mobilskab.x, l.mobilskab.y)) l.mobilskab.y = Math.max(0, ...l.borde.map((b) => b.y + bordHoejde(b))) + 0.6;
+  tilpasStoerrelse(l);
+}
+
+/**
+ * Trækkes et bord tæt på enden af et andet bord i samme retning, sættes
+ * det kant i kant med det, så de to borde står sammen.
+ */
+export function sugSammen(l: Lokale, bordId: string): boolean {
+  const b = l.borde.find((x) => x.id === bordId);
+  if (!b) return false;
+  for (const a of l.borde) {
+    if (a.id === b.id || a.lodret !== b.lodret) continue;
+    if (!b.lodret && Math.abs(a.y - b.y) < 0.5) {
+      if (Math.abs(a.x + bordBredde(a) - b.x) < 0.75) return saet(b, a.x + bordBredde(a), a.y);
+      if (Math.abs(b.x + bordBredde(b) - a.x) < 0.75) return saet(b, a.x - bordBredde(b), a.y);
+    }
+    if (b.lodret && Math.abs(a.x - b.x) < 0.5) {
+      if (Math.abs(a.y + bordHoejde(a) - b.y) < 0.75) return saet(b, a.x, a.y + bordHoejde(a));
+      if (Math.abs(b.y + bordHoejde(b) - a.y) < 0.75) return saet(b, a.x, a.y - bordHoejde(b));
+    }
+  }
+  return false;
+}
+
+function saet(b: Bord, x: number, y: number): boolean {
+  if (x < 0 || y < 0) return false;
+  b.x = x;
+  b.y = y;
+  return true;
 }
 
 /** Klargør et lokale til at blive gemt: tom plads, rækkefølge og størrelse. */

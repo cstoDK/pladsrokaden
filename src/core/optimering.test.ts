@@ -108,6 +108,21 @@ describe('lavPlacering: makkerpar og netværksgrupper', () => {
   });
 });
 
+describe('lavPlacering: borde à 2 sat sammen to og to', () => {
+  const elever = lavElever(15, 16);
+  const lokale = testLokale({ antalBorde: 16, pladserPrBord: 2, bordePrRaekke: 6, toOgTo: true });
+
+  it('hver række på 4 er én netværksgruppe med to blandede makkerpar, og ingen sidder alene', () => {
+    for (const plan of simuler(elever, lokale, 3)) {
+      const g = planGrupper(plan.lokale, plan.placering);
+      expect(g.map((x) => x.par.map((p) => p.length).join('+')).sort()).toEqual([...new Array(7).fill('2+2'), '3'].sort());
+      for (const gr of g) expect(new Set(gr.pladser.map((p) => p.bordId)).size).toBeLessThanOrEqual(2);
+      const mixed = g.flatMap((x) => x.par).filter((p) => p.length === 2 && new Set(p.map((id) => id[0])).size === 2).length;
+      expect(mixed).toBe(14);
+    }
+  });
+});
+
 describe('lavPlacering: forrest, køn og regler', () => {
   it('forreste borde roterer retfærdigt over 6 runder', () => {
     const elever = lavElever(16, 16);

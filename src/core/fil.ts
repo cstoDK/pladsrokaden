@@ -4,7 +4,7 @@
 // Data fra appens første version (version 1) flyttes over automatisk.
 
 import { kunFornavn, navngivDubletter } from './import';
-import { type LokaleV1, fraDybeBorde, fraV1 } from './lokale';
+import { type LokaleV1, flytMobilskabFri, fraDybeBorde, fraV1 } from './lokale';
 import {
   type AppData,
   type Bord,
@@ -54,6 +54,7 @@ export function fraFil(tekst: string): FilResultat {
   }
   const r = laesIndhold(raa);
   if (r && raa['version'] < 3) opgraderTil3(r);
+  if (r) for (const l of r.lokaler) flytMobilskabFri(l);
   return r ?? { fejl: 'Filen er beskadiget og kan ikke hentes. Prøv en anden sikkerhedskopi.' };
 }
 
@@ -63,6 +64,7 @@ export function laesAppData(raa: unknown): AppData {
   const r = laesIndhold(raa);
   if (!r) return tomtAppData();
   if ((raa['version'] as number) < 3) opgraderTil3(r);
+  for (const l of r.lokaler) flytMobilskabFri(l);
   const aktiv = typeof raa['aktivKlasseId'] === 'string' && r.klasser.some((k) => k.id === raa['aktivKlasseId']) ? raa['aktivKlasseId'] : null;
   const sidst = typeof raa['sidstEksporteret'] === 'string' ? raa['sidstEksporteret'] : null;
   return { version: 3, klasser: r.klasser, lokaler: r.lokaler, aktivKlasseId: aktiv, sidstEksporteret: sidst };

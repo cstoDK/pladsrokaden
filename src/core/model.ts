@@ -154,6 +154,36 @@ export function erForrest(bord: Bord, lokale: Lokale): boolean {
   return forresteBorde(lokale).has(bord.id);
 }
 
+/** Står de to borde kant i kant i samme retning, så de danner én række? */
+export function staarSammen(a: Bord, b: Bord): boolean {
+  const n = (x: number, y: number) => Math.abs(x - y) < 0.05;
+  if (a.lodret !== b.lodret) return false;
+  if (!a.lodret) return n(a.y, b.y) && (n(a.x + bordBredde(a), b.x) || n(b.x + bordBredde(b), a.x));
+  return n(a.x, b.x) && (n(a.y + bordHoejde(a), b.y) || n(b.y + bordHoejde(b), a.y));
+}
+
+/**
+ * Borde, der står kant i kant, danner én række (fx to borde à 2 = en række
+ * på 4). Hver række er bordene i rækkefølge fra venstre (eller oppefra).
+ * Rækkerne kommer i rækkefølge efter deres første bord i lokalet.
+ */
+export function bordRaekker(l: Lokale): Bord[][] {
+  const forælder = l.borde.map((_, i) => i);
+  const rod = (i: number): number => (forælder[i] === i ? i : (forælder[i] = rod(forælder[i]!)));
+  for (let i = 0; i < l.borde.length; i++) {
+    for (let j = i + 1; j < l.borde.length; j++) {
+      if (staarSammen(l.borde[i]!, l.borde[j]!)) forælder[rod(j)] = rod(i);
+    }
+  }
+  const grupper = new Map<number, Bord[]>();
+  l.borde.forEach((b, i) => {
+    const r = rod(i);
+    grupper.set(r, [...(grupper.get(r) ?? []), b]);
+  });
+  const ud = [...grupper.values()].map((r) => r.sort((a, b) => (a.lodret ? a.y - b.y : a.x - b.x)));
+  return ud.sort((a, b) => Math.min(...a.map((x) => l.borde.indexOf(x))) - Math.min(...b.map((x) => l.borde.indexOf(x))));
+}
+
 /** Bordets nummer, som læreren ser det (1, 2, 3 ...), i lokalets rækkefølge. */
 export function bordNummer(lokale: Lokale, bordId: BordId): number {
   return lokale.borde.findIndex((b) => b.id === bordId) + 1;

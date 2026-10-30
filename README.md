@@ -14,7 +14,7 @@ Derefter åbner appen på den gældende plan med "Lav ny plan". Planen kan udskr
 
 ### Netværksgrupper og makkerpar
 
-De elever, der sidder ved et bord, deles fra bordets ene ende i **netværksgrupper** af cirka fire (et bord med 11 elever giver grupper på 4, 4 og 3), og hver gruppe i to **makkerpar**, der sidder ved siden af hinanden. Bliver en gruppe på 3, er det et makkerpar på tre, så ingen står uden makker. Ingen sidder alene ved et bord, og tomme pladser kommer i enden af bordene. Er der langt flere pladser end elever, står de bageste borde tomme. Byttes elever, følger grupperne pladserne. Prøv "Se en demoklasse" for at se det hele med opdigtede elever.
+Borde, der står kant i kant (fx to borde à 2 sat sammen), tæller som én række. Skabelonen "Borde à 2" stiller dem sammen to og to, og i editoren suges et bord fast til nabobordet, når det slippes tæt på enden af det. De elever, der sidder ved en række, deles fra rækkens ene ende i **netværksgrupper** af cirka fire (et bord med 11 elever giver grupper på 4, 4 og 3), og hver gruppe i to **makkerpar**, der sidder ved siden af hinanden. Bliver en gruppe på 3, er det et makkerpar på tre, så ingen står uden makker. Ingen sidder alene ved en række, og tomme pladser kommer i enden af rækkerne. Er der langt flere pladser end elever, står de bageste borde tomme. Byttes elever, følger grupperne pladserne. Prøv "Se en demoklasse" for at se det hele med opdigtede elever.
 
 ## Databeskyttelse
 

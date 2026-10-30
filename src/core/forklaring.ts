@@ -2,7 +2,7 @@
 // hele planen og de problemer ved hvert bord, der ikke kunne undgås.
 
 import { aleneVedBord, bygHistorik, koenOpslag, parNoegle } from './historik';
-import { type BordId, type Elev, type ElevId, type Lokale, type Placering, type Plan, elevIderVedBord, forresteBorde } from './model';
+import { type BordId, type Elev, type ElevId, type Lokale, type Placering, type Plan, bordRaekker, elevIderVedBord, forresteBorde } from './model';
 import { planGrupper } from './struktur';
 
 export type Niveau = 'ok' | 'bemaerk' | 'fejl';
@@ -93,9 +93,9 @@ export function forklar(input: ForklaringsInput): Forklaring {
     }
   }
 
-  for (const bord of lokale.borde) {
-    const ider = elevIderVedBord(placering, bord.id);
-    const liste = borde[bord.id]!;
+  for (const raekke of bordRaekker(lokale)) {
+    const ider = raekke.flatMap((b) => elevIderVedBord(placering, b.id));
+    const liste = borde[raekke[0]!.id]!;
     if (ider.length === 1) {
       ensomme++;
       liste.unshift({ niveau: 'fejl', tekst: `${n(ider[0]!)} sidder alene ved bordet`, elevIder: ider });
@@ -108,6 +108,10 @@ export function forklar(input: ForklaringsInput): Forklaring {
         }
       }
     }
+  }
+  for (const bord of lokale.borde) {
+    const ider = elevIderVedBord(placering, bord.id);
+    const liste = borde[bord.id]!;
     if (forrest.has(bord.id)) {
       for (const id of ider) {
         if (h.forrestSidst.has(id)) {
