@@ -18,6 +18,9 @@ export function App() {
 
   // Uden adresse åbnes den senest brugte klasse; ellers startsiden.
   let r: Rute = rute ?? (aktiv ? { side: 'klasse', id: aktiv.id, fane: null } : { side: 'start' });
+  // Et opdateringslink gælder den åbne klasse; listen vises til sammenligning, før noget gemmes.
+  const forhaandsliste = r.side === 'opdater' ? r.liste : undefined;
+  if (r.side === 'opdater') r = aktiv ? { side: 'klasse', id: aktiv.id, fane: 'elever' } : { side: 'start' };
   const klasseId = r.side === 'klasse' ? r.id : null;
   const klasse = klasseId ? data.klasser.find((k) => k.id === klasseId) ?? null : null;
   if (r.side === 'klasse' && !klasse) r = { side: 'start' };
@@ -32,7 +35,7 @@ export function App() {
   let indhold;
   if (r.side === 'data') indhold = <DataSide onTilbage={() => history.back()} />;
   else if (r.side === 'ny') indhold = <NyKlasse kanAnnullere={data.klasser.length > 0} />;
-  else if (r.side === 'klasse' && klasse) indhold = <KlasseVisning klasse={klasse} fane={r.fane} />;
+  else if (r.side === 'klasse' && klasse) indhold = <KlasseVisning klasse={klasse} fane={r.fane} forhaandsliste={forhaandsliste} />;
   else indhold = data.klasser.length === 0 ? <Velkomst /> : <Startside />;
 
   return (

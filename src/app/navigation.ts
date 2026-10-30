@@ -10,6 +10,8 @@ export type Rute =
   | { side: 'start' }
   | { side: 'ny' }
   | { side: 'data' }
+  /** Opdatér den åbne klasse fra en liste i adressen (kun i #-delen, som aldrig sendes til en server). */
+  | { side: 'opdater'; liste: string }
   | { side: 'klasse'; id: string; fane: Fane | null };
 
 const FANER: Fane[] = ['plan', 'elever', 'lokale', 'historik'];
@@ -20,6 +22,13 @@ export function laesRute(hash: string): Rute | null {
   if (dele[0] === 'start') return { side: 'start' };
   if (dele[0] === 'ny') return { side: 'ny' };
   if (dele[0] === 'data') return { side: 'data' };
+  if (dele[0] === 'opdater' && dele[1]) {
+    try {
+      return { side: 'opdater', liste: decodeURIComponent(dele.slice(1).join('/')) };
+    } catch {
+      return null;
+    }
+  }
   if (dele[0] === 'klasse' && dele[1]) {
     const fane = FANER.includes(dele[2] as Fane) ? (dele[2] as Fane) : null;
     return { side: 'klasse', id: decodeURIComponent(dele[1]), fane };
@@ -29,6 +38,7 @@ export function laesRute(hash: string): Rute | null {
 
 export function tilHash(r: Rute): string {
   if (r.side === 'klasse') return `#/klasse/${encodeURIComponent(r.id)}${r.fane ? `/${r.fane}` : ''}`;
+  if (r.side === 'opdater') return `#/opdater/${encodeURIComponent(r.liste)}`;
   return `#/${r.side}`;
 }
 

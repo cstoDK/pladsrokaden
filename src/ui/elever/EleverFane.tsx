@@ -2,7 +2,8 @@
 // "hold adskilt"-par, faste pladser og sletning af klassen.
 
 import { useState } from 'preact/hooks';
-import { findDubletter, normaliserHold, rydNavn } from '../../core/import';
+import { findDubletter, normaliserHold, rydNavn, udtraekFraLinjer } from '../../core/import';
+import { gaaTil } from '../../app/navigation';
 import { sammenlign } from '../../core/sammenlign';
 import { Hent } from '../import/Import';
 import { type Udtraek } from '../../core/import';
@@ -12,16 +13,21 @@ import { type ElevId, type Klasse, type Lokale, bordNummer, forresteBorde, nyId 
 import { medFortryd, opdaterKlasse } from '../../app/tilstand';
 import { Import } from '../import/Import';
 
-export function EleverFane(props: { klasse: Klasse; lokale: Lokale | null }) {
+export function EleverFane(props: { klasse: Klasse; lokale: Lokale | null; forhaandsliste?: string }) {
   const k = props.klasse;
   const [tilfoejer, setTilfoejer] = useState(false);
-  const [sammenligner, setSammenligner] = useState(false);
+  const [sammenligner, setSammenligner] = useState(!!props.forhaandsliste);
+  const afslut = () => {
+    setSammenligner(false);
+    // Fjern listen fra adressen, så den ikke bliver liggende i browserens historik.
+    if (props.forhaandsliste) gaaTil({ side: 'klasse', id: k.id, fane: 'elever' }, true);
+  };
 
   if (sammenligner) {
     return (
       <div class="smal">
         <h1>Opdatér {k.navn} fra klasseliste</h1>
-        <OpdaterFraListe klasse={k} onFaerdig={() => setSammenligner(false)} />
+        <OpdaterFraListe klasse={k} onFaerdig={afslut} forhaandsliste={props.forhaandsliste} />
       </div>
     );
   }
@@ -399,9 +405,9 @@ function ElevVaelger(props: { id: string; label: string; vaerdi: string; onVaelg
  * og appen viser, hvem der findes begge steder, kun på listen og kun i
  * klassen. Intet ændres, før læreren trykker "Gem ændringer".
  */
-function OpdaterFraListe(props: { klasse: Klasse; onFaerdig: () => void }) {
+function OpdaterFraListe(props: { klasse: Klasse; onFaerdig: () => void; forhaandsliste?: string }) {
   const k = props.klasse;
-  const [udtraek, setUdtraek] = useState<Udtraek | null>(null);
+  const [udtraek, setUdtraek] = useState<Udtraek | null>(() => (props.forhaandsliste ? udtraekFraLinjer(props.forhaandsliste) : null));
   const [tilfoej, setTilfoej] = useState<Set<number>>(new Set());
   const [fjern, setFjern] = useState<Set<string>>(new Set());
 

@@ -18,7 +18,7 @@ const FANER: { id: Fane; navn: string }[] = [
   { id: 'historik', navn: 'Historik' },
 ];
 
-export function KlasseVisning(props: { klasse: Klasse; fane: Fane | null }) {
+export function KlasseVisning(props: { klasse: Klasse; fane: Fane | null; forhaandsliste?: string }) {
   const k = props.klasse;
   const lokale = findLokale(useData(), k);
   const opsaetning = !lokale || k.planer.length === 0;
@@ -76,7 +76,7 @@ export function KlasseVisning(props: { klasse: Klasse; fane: Fane | null }) {
 
       {fane === 'elever' && (
         <>
-          <EleverFane key={k.id} klasse={k} lokale={lokale} />
+          <EleverFane key={`${k.id}|${props.forhaandsliste ?? ''}`} klasse={k} lokale={lokale} forhaandsliste={props.forhaandsliste} />
           {opsaetning && (
             <div class="smal videre">
               <a class="knap knap-primaer knap-stor" href={til(lokale ? 'plan' : 'lokale')}>

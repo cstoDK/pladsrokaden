@@ -8,4 +8,5 @@ it('læser og skriver adresser', () => {
   expect(laesRute('#/klasse/abc/ukendt')).toEqual({ side: 'klasse', id: 'abc', fane: null });
   expect(tilHash({ side: 'klasse', id: 'a b', fane: 'plan' })).toBe('#/klasse/a%20b/plan');
   expect(laesRute(tilHash({ side: 'data' }))).toEqual({ side: 'data' });
+  expect(laesRute(tilHash({ side: 'opdater', liste: 'Ida P GF02\nMalte D GF01' }))).toEqual({ side: 'opdater', liste: 'Ida P GF02\nMalte D GF01' });
 });
