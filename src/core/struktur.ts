@@ -1,9 +1,11 @@
 // Netværksgrupper og makkerskabspar. Inddelingen følger pladserne: de
-// optagne pladser ved et bord deles fra den ene ende i grupper af cirka
-// fire, og hver gruppe i makkerpar af to (et par kan blive på tre, så ingen
-// står uden makker). Byttes elever, følger grupperne derfor pladserne.
+// optagne pladser ved borde, der står sammen, deles fra den ene ende i
+// grupper af cirka fire, og hver gruppe i makkerpar af to (et par kan blive
+// på tre, så ingen står uden makker). Byttes elever, følger grupperne derfor
+// pladserne. En gruppe må aldrig have under tre: sidder kun en eller to ved
+// et bord for sig, slås de sammen med bordene ved siden af, foran eller bagved.
 
-import { type BordId, type ElevId, type Lokale, type Placering, bordRaekker } from './model';
+import { type BordId, type ElevId, type Lokale, type Placering, bordBredde, bordHoejde, bordRaekker } from './model';
 
 /** Hvor mange elever hver gruppe får, når et bord har `antal` elever. */
 export function gruppestoerrelser(antal: number): number[] {
@@ -52,15 +54,80 @@ export function raekkePladser(lokale: Lokale): { bordId: BordId; plads: number }
   return bordRaekker(lokale).map((r) => r.flatMap((b) => Array.from({ length: b.pladser }, (_, plads) => ({ bordId: b.id, plads }))));
 }
 
+type Plads = { bordId: BordId; plads: number };
+
+/** Mindste antal i en netværksgruppe; færre ved et bord slås sammen med naboerne. */
+const MINDST = 3;
+
+/**
+ * De optagne pladser samlet i segmenter, som grupperne laves af. Et segment
+ * er normalt en række borde, der står sammen. Har et segment kun en eller to
+ * elever, slås det sammen med det nærmeste segment på samme række eller lige
+ * foran eller bagved, så gruppen kan sidde sammen og vende sig om.
+ */
+export function gruppeSegmenter(lokale: Lokale, optaget: (p: Plads) => boolean): Plads[][] {
+  const segmenter = bordRaekker(lokale)
+    .map((r) => ({
+      pladser: r.flatMap((b) => Array.from({ length: b.pladser }, (_, plads) => ({ bordId: b.id, plads }))).filter(optaget),
+      x0: Math.min(...r.map((b) => b.x)),
+      x1: Math.max(...r.map((b) => b.x + bordBredde(b))),
+      y0: Math.min(...r.map((b) => b.y)),
+      y1: Math.max(...r.map((b) => b.y + bordHoejde(b))),
+    }))
+    .filter((s) => s.pladser.length > 0);
+
+  // Afstand mellem to segmenter, hvis de sidder "sammen": på samme række med
+  // højst et par pladsers mellemrum, eller over for hinanden (foran/bagved).
+  function afstand(a: (typeof segmenter)[number], b: (typeof segmenter)[number]): number | null {
+    const overlapX = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+    const overlapY = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+    const hulX = Math.max(0, -overlapX);
+    const hulY = Math.max(0, -overlapY);
+    if (overlapY > 0 && hulX <= 3) return hulX;
+    if (overlapX > 0 && hulY <= 2) return hulY + 0.01;
+    return null;
+  }
+
+  for (;;) {
+    const smaa = segmenter.filter((s) => s.pladser.length < MINDST).sort((a, b) => a.pladser.length - b.pladser.length);
+    let flettet = false;
+    for (const s of smaa) {
+      let bedst: (typeof segmenter)[number] | null = null;
+      let bedstAfstand = Infinity;
+      for (const t of segmenter) {
+        if (t === s) continue;
+        const d = afstand(s, t);
+        if (d !== null && d < bedstAfstand) {
+          bedst = t;
+          bedstAfstand = d;
+        }
+      }
+      if (!bedst) continue;
+      // Det lille segment sættes i den ende, det sidder nærmest, så gruppen
+      // i den ende også sidder sammen.
+      const foerst = s.x0 + s.x1 < bedst.x0 + bedst.x1;
+      bedst.pladser = foerst ? [...s.pladser, ...bedst.pladser] : [...bedst.pladser, ...s.pladser];
+      bedst.x0 = Math.min(bedst.x0, s.x0);
+      bedst.x1 = Math.max(bedst.x1, s.x1);
+      bedst.y0 = Math.min(bedst.y0, s.y0);
+      bedst.y1 = Math.max(bedst.y1, s.y1);
+      segmenter.splice(segmenter.indexOf(s), 1);
+      flettet = true;
+      break;
+    }
+    if (!flettet) break;
+  }
+  return segmenter.map((s) => s.pladser);
+}
+
 /** Alle netværksgrupper i en plan, nummereret i bordenes rækkefølge. */
 export function planGrupper(lokale: Lokale, placering: Placering): Netvaerksgruppe[] {
+  const elev = (p: Plads) => placering[p.bordId]?.[p.plads] ?? null;
   const ud: Netvaerksgruppe[] = [];
-  for (const pladser of raekkePladser(lokale)) {
-    const elev = (i: number) => placering[pladser[i]!.bordId]?.[pladser[i]!.plads] ?? null;
-    const optagne = pladser.map((_, i) => (elev(i) ? i : -1)).filter((i) => i >= 0);
-    for (const g of inddelPladser(optagne)) {
+  for (const pladser of gruppeSegmenter(lokale, (p) => !!elev(p))) {
+    for (const g of inddelPladser(pladser.map((_, i) => i))) {
       const dækker = g.flat().map((i) => pladser[i]!);
-      ud.push({ nr: ud.length + 1, bordId: dækker[0]!.bordId, par: g.map((p) => p.map((i) => elev(i)!)), pladser: dækker });
+      ud.push({ nr: ud.length + 1, bordId: dækker[0]!.bordId, par: g.map((p) => p.map((i) => elev(pladser[i]!)!)), pladser: dækker });
     }
   }
   return ud;

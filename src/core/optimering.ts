@@ -11,7 +11,7 @@
 import { bygHistorik, parNoegle } from './historik';
 import { type Elev, type ElevId, type Laas, type Lokale, type Placering, type Plan, antalPladser, forresteBorde } from './model';
 import { type Rng, bland, heltal, lavRng } from './rng';
-import { inddelPladser, raekkePladser } from './struktur';
+import { gruppeSegmenter, inddelPladser, raekkePladser } from './struktur';
 
 export interface Vaegte {
   /** Pr. tidligere gang forrest, for en elev ved et forreste bord. */
@@ -180,7 +180,9 @@ interface Forberedt {
   pladsGruppe: Int32Array;
   pladsBord: Int32Array;
   /** Grupper: listen af par, hvert par er en liste af pladsindeks. */
-  grupper: { bord: number; forrest: boolean; par: number[][]; alle: number[] }[];
+  grupper: { bord: number; par: number[][]; alle: number[] }[];
+  /** 1 hvis pladsen er ved et af de forreste borde. */
+  pladsForrest: Uint8Array;
   /** Pladserne i hver række (borde, der står sammen). "Hold adskilt" gælder rækken. */
   bordPladser: number[][];
   koen: Uint8Array;
@@ -239,25 +241,34 @@ function forbered(input: OptimeringsInput, v: Vaegte, fasteOptagne?: number[][])
   const pladsGruppe: number[] = [];
   const pladsBord: number[] = [];
   const pladsIndeks = new Map<string, number>();
-  optagne.forEach((liste, ri) => {
-    for (const g of inddelPladser(liste)) {
+  // Grupperne laves af de optagne pladser; en eller to ved et bord for sig
+  // slås sammen med naboerne (se gruppeSegmenter).
+  const raekkeAf = new Map<string, number>();
+  const optagetSaet = new Set<string>();
+  raekker.forEach((r, ri) => r.forEach((p) => raekkeAf.set(`${p.bord}#${p.nr}`, ri)));
+  optagne.forEach((liste, ri) => liste.forEach((i) => optagetSaet.add(`${raekker[ri]![i]!.bord}#${raekker[ri]![i]!.nr}`)));
+  const segmenter = gruppeSegmenter(lokale, (p) => optagetSaet.has(`${bordIndeks.get(p.bordId)}#${p.plads}`));
+  const pladsForrest: number[] = [];
+  for (const seg of segmenter) {
+    for (const g of inddelPladser(seg.map((_, i) => i))) {
       const gi = grupper.length;
       const par = g.map((pp) =>
         pp.map((i) => {
-          const pl = raekker[ri]![i]!;
+          const pl = { bord: bordIndeks.get(seg[i]!.bordId)!, nr: seg[i]!.plads };
+          const ri = raekkeAf.get(`${pl.bord}#${pl.nr}`)!;
           const s = pladser.length;
           pladser.push(pl);
           pladsGruppe.push(gi);
           pladsBord.push(ri);
+          pladsForrest.push(forrest.has(seg[i]!.bordId) ? 1 : 0);
           bordPladser[ri]!.push(s);
           pladsIndeks.set(`${pl.bord}#${pl.nr}`, s);
           return s;
         }),
       );
-      const foerste = pladser[par[0]![0]!]!;
-      grupper.push({ bord: ri, forrest: forrest.has(lokale.borde[foerste.bord]!.id), par, alle: par.flat() });
+      grupper.push({ bord: pladsBord[par[0]![0]!]!, par, alle: par.flat() });
     }
-  });
+  }
 
   const koen = new Uint8Array(n);
   let drenge = 0;
@@ -311,6 +322,7 @@ function forbered(input: OptimeringsInput, v: Vaegte, fasteOptagne?: number[][])
     pladser,
     pladsGruppe: Int32Array.from(pladsGruppe),
     pladsBord: Int32Array.from(pladsBord),
+    pladsForrest: Uint8Array.from(pladsForrest),
     grupper,
     bordPladser,
     koen,
@@ -340,7 +352,7 @@ function gruppeStraf(p: Forberedt, t: Int32Array, gi: number): number {
     for (let i = 0; i < par.length; i++) {
       const e = t[par[i]!]!;
       if (e < 0) continue;
-      if (g.forrest) straf += p.forrestStraf[e]!;
+      if (p.pladsForrest[par[i]!]) straf += p.forrestStraf[e]!;
       const k = p.koen[e];
       if (k === 1) pd++;
       else if (k === 2) pp++;

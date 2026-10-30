@@ -12,6 +12,9 @@ const elever: Elev[] = [
   { id: 'f', navn: 'Lea', koen: null },
 ];
 const lokale = testLokale({ antalBorde: 2, pladserPrBord: 4, bordePrRaekke: 1 }); // B1 forrest
+// B2 står langt fra B1, så de to ved B2 ikke slås sammen med B1 (se gruppeSegmenter).
+lokale.borde[1]!.y += 5;
+lokale.hoejde += 5;
 const tekster = (f: ReturnType<typeof forklar>) => f.status.map((s) => s.tekst);
 
 describe('forklar', () => {
