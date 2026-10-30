@@ -26,6 +26,9 @@ export interface LokaleIndstillinger {
 export const MAKS_BORDE = 40;
 export const MAKS_PLADSER_PR_BORD = 16;
 const MARGIN = 1;
+/** Første række står lidt fra tavlen; rækkerne står 1,3 fra hinanden (bord + gang). */
+const RAEKKE_START = 1.5;
+const RAEKKE_AFSTAND = 1.3;
 
 /** Standardindstillinger for en skabelon ud fra klassens størrelse. */
 export function foreslaaIndstillinger(skabelon: SkabelonId, antalElever: number): LokaleIndstillinger {
@@ -51,7 +54,7 @@ export function lavLokale(ind: LokaleIndstillinger, navn = ''): Lokale {
   for (let i = 0; i < antal; i++) {
     const raekke = Math.floor(i / prRaekke);
     const kolonne = i % prRaekke;
-    borde.push({ id: nyId(), x: MARGIN + kolonne * (pladser + 1), y: 2 + raekke * 2, pladser, lodret: false });
+    borde.push({ id: nyId(), x: MARGIN + kolonne * (pladser + 1), y: RAEKKE_START + raekke * RAEKKE_AFSTAND, pladser, lodret: false });
   }
   const l: Lokale = {
     id: nyId(),
@@ -65,7 +68,8 @@ export function lavLokale(ind: LokaleIndstillinger, navn = ''): Lokale {
   tilpasStoerrelse(l);
   l.tavle.midte = l.bredde / 2;
   l.tavle.laengde = Math.min(8, Math.max(4, Math.round(l.bredde * 0.5)));
-  l.mobilskab = { x: MARGIN, y: l.hoejde - MOBILSKAB.hoejde - 0.5 };
+  // Mobilskabet står bagest i lokalet, under det bageste bord.
+  l.mobilskab = { x: MARGIN, y: Math.max(...borde.map((b) => b.y + bordHoejde(b))) + 0.6 };
   tilpasStoerrelse(l);
   return l;
 }
@@ -73,7 +77,7 @@ export function lavLokale(ind: LokaleIndstillinger, navn = ''): Lokale {
 /** Gør lokalet stort nok til alt indhold (plus luft), men aldrig mindre end 8 × 6. */
 export function tilpasStoerrelse(l: Lokale): void {
   let b = 8;
-  let h = 6;
+  let h = 4;
   for (const bord of l.borde) {
     b = Math.max(b, bord.x + bordBredde(bord) + MARGIN);
     h = Math.max(h, bord.y + bordHoejde(bord) + MARGIN);
@@ -130,6 +134,21 @@ export function fjernTomPlads(l: Lokale): void {
   if (l.tavle.vaeg === 'bund') l.hoejde += 0.5;
 }
 
+/**
+ * Lokaler fra version 1 og 2 havde borde, der var en hel plads dybe.
+ * Nu er de PLADSDYBDE dybe; afstandene presses sammen, så lokalet bevarer
+ * sit udseende uden ekstra tom plads.
+ */
+export function fraDybeBorde(l: Lokale): void {
+  const f = 0.75;
+  for (const b of l.borde) b.y = Math.round(b.y * f * 2) / 2;
+  if (l.mobilskab) l.mobilskab.y = Math.round(l.mobilskab.y * f * 2) / 2;
+  if (l.tavle.vaeg === 'venstre' || l.tavle.vaeg === 'hoejre') l.tavle.midte *= f;
+  l.bredde = 0;
+  l.hoejde = 0;
+  tilpasStoerrelse(l);
+}
+
 /** Klargør et lokale til at blive gemt: tom plads, rækkefølge og størrelse. */
 export function normaliserLokale(l: Lokale): Lokale {
   const kopi = structuredClone(l);
@@ -149,7 +168,7 @@ export function fraV1(v1: LokaleV1, navn = ''): Lokale {
   const borde: Bord[] = v1.borde.map((b) => ({
     id: b.id,
     x: MARGIN + b.kolonne * (maks + 1),
-    y: 2 + b.raekke * 2,
+    y: RAEKKE_START + b.raekke * RAEKKE_AFSTAND,
     pladser: b.pladser,
     lodret: false,
     ...(v1.forresteRaekker > 1 ? { forrest: b.raekke < v1.forresteRaekker } : {}),

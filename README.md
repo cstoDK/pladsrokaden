@@ -97,7 +97,7 @@ Et lokale har et nummer, en størrelse, borde (en række af pladser, vandret ell
 
 ### Import
 
-`src/core/import.ts` finder fornavne i rodet tekst: tabulatorer og kolonner, overskrifter (Elev, Navn, Fornavn, Efternavn, Køn), "Efternavn, Fornavn", efternavne med versaler, navnepartikler (al-, de, van), og den smider klassekoder, numre, e-mails, datoer, CPR-lignende numre, menuord fra Ludus og Lectio samt udmeldte elever væk. HTML-tabeller fra udklipsholderen læses inaktivt. Tekst fra tekstgenkendelse renses for typiske fejl ("ldaTestesen" bliver til "Ida Testesen"). Kun fornavn, køn og højst to bogstaver af efternavnet (til dubletter) forlader modulet. Testene bruger realistiske, opdigtede eksempler.
+`src/core/import.ts` finder fornavne i rodet tekst: tabulatorer og kolonner, overskrifter (Elev, Navn, Fornavn, Efternavn, Køn), "Efternavn, Fornavn", efternavne med versaler, navnepartikler (al-, de, van), og den smider klassekoder, numre, e-mails, datoer, CPR-lignende numre, menuord fra Ludus og Lectio samt udmeldte elever væk. HTML-tabeller fra udklipsholderen læses inaktivt. Tekst fra tekstgenkendelse renses for typiske fejl ("ldaTestesen" bliver til "Ida Testesen"). Kun det første fornavn (mellemnavne er ofte slægtsnavne og fjernes), køn og højst to bogstaver af efternavnet (til dubletter) forlader modulet. En fælles sikring (`kunFornavn`) bruges på alle importveje. Data fra version 1 og 2, hvor en fejl kunne gemme mellemnavne fra en Fornavn-kolonne, ryddes automatisk op, når appen åbnes, og når en gammel sikkerhedskopi hentes. Testene bruger realistiske, opdigtede eksempler.
 
 ### Forslag til køn
 

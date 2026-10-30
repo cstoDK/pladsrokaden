@@ -49,6 +49,18 @@ const KOEN_ORD: Record<string, 'P' | 'D'> = {
 };
 
 const NAVNEORD = /^\p{Lu}[\p{L}\p{M}'’.-]*$/u;
+const FORBOGSTAV_ORD = /^\p{L}{1,2}\.$/u;
+
+/**
+ * Dataminimering: kun det første fornavn (evt. med forbogstav i efternavnet,
+ * "Ida H."). Mellemnavne og efternavne fjernes. "Anne-Sofie" er ét navn.
+ */
+export function kunFornavn(navn: string): string {
+  const ord = navn.trim().split(/\s+/).filter(Boolean);
+  if (ord.length <= 1) return ord[0] ?? '';
+  if (ord.length === 2 && FORBOGSTAV_ORD.test(ord[1]!)) return `${ord[0]} ${ord[1]}`;
+  return ord[0]!;
+}
 const HEADER: Record<string, 'fornavn' | 'efternavn' | 'navn' | 'koen'> = {
   fornavn: 'fornavn', fornavne: 'fornavn', 'first name': 'fornavn', kaldenavn: 'fornavn',
   efternavn: 'efternavn', efternavne: 'efternavn', 'last name': 'efternavn',
@@ -92,7 +104,11 @@ export function udtraekFraTekst(tekst: string): Udtraek {
       else sprungetOver++;
     }
   }
-  return { elever, sprungetOver };
+  return { elever: elever.map(sikr), sprungetOver };
+}
+
+function sikr(e: UdtrukketElev): UdtrukketElev {
+  return { ...e, fornavn: kunFornavn(e.fornavn) };
 }
 
 /**
@@ -116,15 +132,17 @@ export function udtraekFraLinjer(tekst: string): Udtraek {
       sprungetOver++;
       continue;
     }
-    // "Ida H." eller "Anne-Sofie" beholdes som skrevet. "Ida Marie Hansen" bliver til "Ida" + H.
+    // "Ida H." og "Anne-Sofie" beholdes. "Ida Marie Hansen" bliver til "Ida" (+ H til dubletter).
     const sidste = ord[ord.length - 1]!;
-    if (ord.length >= 2 && sidste.length > 2 && !sidste.endsWith('.')) {
+    if (ord.length === 2 && FORBOGSTAV_ORD.test(sidste)) {
+      elever.push({ fornavn: `${paenStavning(ord[0]!)} ${sidste.toUpperCase()}`, koen });
+    } else if (ord.length >= 2) {
       elever.push({ fornavn: paenStavning(ord[0]!), efternavnStart: start(sidste), koen });
     } else {
-      elever.push({ fornavn: ord.map(paenStavning).join(' '), koen });
+      elever.push({ fornavn: paenStavning(ord[0]!), koen });
     }
   }
-  return { elever, sprungetOver };
+  return { elever: elever.map(sikr), sprungetOver };
 }
 
 // ----------------------------------------------------------------------
@@ -297,7 +315,8 @@ function fraRaekke(celler: string[], k: Kolonner): UdtrukketElev | null {
     const f = rensCelle(celler[k.fornavn] ?? '');
     if (!erNavneagtig(f)) return null;
     const e = k.efternavn >= 0 ? rensCelle(celler[k.efternavn] ?? '') : '';
-    return { fornavn: f.split(' ').map(paenStavning).join(' '), efternavnStart: e ? start(e) : undefined, koen };
+    // Kun det første fornavn: mellemnavne er ofte slægtsnavne og må ikke gemmes.
+    return { fornavn: paenStavning(f.split(/[\s,]+/)[0]!), efternavnStart: e ? start(e) : undefined, koen };
   }
   for (const i of k.navn) {
     const n = parseNavn(rensCelle(celler[i] ?? ''));

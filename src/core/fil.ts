@@ -3,7 +3,8 @@
 // andet end fornavn, køn, lokaler, planer, låse og "hold adskilt"-par.
 // Data fra appens første version (version 1) flyttes over automatisk.
 
-import { type LokaleV1, fraV1 } from './lokale';
+import { kunFornavn, navngivDubletter } from './import';
+import { type LokaleV1, fraDybeBorde, fraV1 } from './lokale';
 import {
   type AppData,
   type Bord,
@@ -24,7 +25,7 @@ const MAKS_NAVN = 60;
 
 export function tilFil(d: AppData, nu: Date = new Date()): string {
   const indhold = laesIndhold({ klasser: d.klasser, lokaler: d.lokaler });
-  return JSON.stringify({ filtype: FILTYPE, version: 2, gemt: nu.toISOString(), ...indhold }, null, 1);
+  return JSON.stringify({ filtype: FILTYPE, version: 3, gemt: nu.toISOString(), ...indhold }, null, 1);
 }
 
 export function filnavn(dato: string): string {
@@ -48,21 +49,49 @@ export function fraFil(tekst: string): FilResultat {
   if (!erObjekt(raa) || raa['filtype'] !== FILTYPE || !Array.isArray(raa['klasser'])) {
     return { fejl: 'Filen er ikke en sikkerhedskopi fra Pladsrokaden. Vælg en fil, der hedder noget med "pladsrokaden".' };
   }
-  if (typeof raa['version'] !== 'number' || raa['version'] > 2) {
+  if (typeof raa['version'] !== 'number' || raa['version'] > 3) {
     return { fejl: 'Filen er lavet med en nyere version af Pladsrokaden. Genindlæs siden, og prøv igen.' };
   }
   const r = laesIndhold(raa);
+  if (r && raa['version'] < 3) opgraderTil3(r);
   return r ?? { fejl: 'Filen er beskadiget og kan ikke hentes. Prøv en anden sikkerhedskopi.' };
 }
 
 /** Læser data fra browserens lager (version 1 eller 2). Ugyldige data giver tomme data. */
 export function laesAppData(raa: unknown): AppData {
-  if (!erObjekt(raa) || (raa['version'] !== 1 && raa['version'] !== 2)) return tomtAppData();
+  if (!erObjekt(raa) || ![1, 2, 3].includes(raa['version'] as number)) return tomtAppData();
   const r = laesIndhold(raa);
   if (!r) return tomtAppData();
+  if ((raa['version'] as number) < 3) opgraderTil3(r);
   const aktiv = typeof raa['aktivKlasseId'] === 'string' && r.klasser.some((k) => k.id === raa['aktivKlasseId']) ? raa['aktivKlasseId'] : null;
   const sidst = typeof raa['sidstEksporteret'] === 'string' ? raa['sidstEksporteret'] : null;
-  return { version: 2, klasser: r.klasser, lokaler: r.lokaler, aktivKlasseId: aktiv, sidstEksporteret: sidst };
+  return { version: 3, klasser: r.klasser, lokaler: r.lokaler, aktivKlasseId: aktiv, sidstEksporteret: sidst };
+}
+
+/** Engangsopgradering af data fra version 1 og 2: navne og bordenes dybde. */
+function opgraderTil3(r: Indhold): void {
+  for (const l of r.lokaler) fraDybeBorde(l);
+  for (const k of r.klasser) {
+    k.elever = forkortNavne(k.elever);
+    for (const p of k.planer) fraDybeBorde(p.lokale);
+    if (k.kladde) fraDybeBorde(k.kladde.plan.lokale);
+  }
+}
+
+/**
+ * Engangsoprydning af data fra version 1 og 2, hvor en fejl i importen kunne
+ * gemme mellemnavne og efternavne: kun første fornavn beholdes. Navne, der
+ * derved bliver ens, får forbogstavet i det sidste af de fjernede navne.
+ */
+export function forkortNavne(elever: Elev[]): Elev[] {
+  const udtraek = elever.map((e) => {
+    const kort = kunFornavn(e.navn);
+    const ord = e.navn.trim().split(/\s+/);
+    const sidste = kort === e.navn.trim() ? undefined : ord[ord.length - 1];
+    return { fornavn: kort, efternavnStart: sidste?.replace(/[^\p{L}]/gu, '').slice(0, 2), koen: e.koen };
+  });
+  const navne = navngivDubletter(udtraek);
+  return elever.map((e, i) => ({ ...e, navn: navne[i]!.navn }));
 }
 
 /** Lægger klasser og lokaler fra en fil ind. Samme id erstattes; andre tilføjes. */

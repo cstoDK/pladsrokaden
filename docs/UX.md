@@ -65,7 +65,8 @@ Kontrolleret med axe-core (WCAG 2.0/2.1/2.2 A og AA samt best practice) på alle
 - **Genkendelse frem for hukommelse:** lokaler vælges efter nummer og huskes med indretningen. Netværksgrupper har hver sin farve og et nummer (G1, G2 ...), så farven ikke er den eneste markering; makkerpar er adskilt af en tydelig streg.
 - **Forebyg fejl:** editoren advarer, når borde står oven i hinanden, når der er for få pladser, og når opstillingen tvinger en elev til at sidde alene.
 - **Synlig status:** "Det kunne ikke undgås" samler problemerne bord for bord under lokalet, og gruppeoversigten står under bordplanen og på printets side 2.
-- **Læsbarhed:** hvert navn får den største skrift, der passer i pladsen, så ét langt navn ikke gør alle navne små.
+- **Hele lokalet på én skærm:** lokalet skaleres til skærmens bredde og højde og må bruge hele bredden. Bordene tegnes lavere end de er brede (som rigtige borde), så navnene kan være større. Kun på telefoner ruller lokalet, fordi et helt lokale ikke kan vises læsbart dér.
+- **Ens skriftstørrelse:** alle navne har samme størrelse (efter brugerfeedback: forskellige størrelser var forstyrrende). Størrelsen bestemmes af det længste navn.
 
 ## Fundet og rettet i gennemgangen
 

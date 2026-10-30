@@ -16,7 +16,9 @@ export interface Elev {
 
 /**
  * Et bord er en række pladser. Koordinater er i "pladser": én plads er 1 bred
- * og et bord er 1 dybt. (0, 0) er lokalets øverste venstre hjørne.
+ * og et bord er PLADSDYBDE dybt. (0, 0) er lokalets øverste venstre hjørne.
+ * Ved lodrette borde tegnes hver plads som en bred, lav boks, så navnet
+ * kan stå vandret.
  */
 export interface Bord {
   id: BordId;
@@ -85,7 +87,7 @@ export interface Kladde {
 }
 
 export interface AppData {
-  version: 2;
+  version: 3;
   klasser: Klasse[];
   /** Lokaler deles mellem klasserne og huskes med deres indretning. */
   lokaler: Lokale[];
@@ -95,7 +97,7 @@ export interface AppData {
 }
 
 export function tomtAppData(): AppData {
-  return { version: 2, klasser: [], lokaler: [], aktivKlasseId: null, sidstEksporteret: null };
+  return { version: 3, klasser: [], lokaler: [], aktivKlasseId: null, sidstEksporteret: null };
 }
 
 export function nyKlasse(navn: string, elever: Elev[]): Klasse {
@@ -110,13 +112,14 @@ export function nyId(): string {
   return crypto.randomUUID();
 }
 
-export const MOBILSKAB = { bredde: 2, hoejde: 1 };
+export const PLADSDYBDE = 0.6;
+export const MOBILSKAB = { bredde: 2, hoejde: 0.7 };
 
 export function bordBredde(b: Bord): number {
   return b.lodret ? 1 : b.pladser;
 }
 export function bordHoejde(b: Bord): number {
-  return b.lodret ? b.pladser : 1;
+  return b.lodret ? b.pladser * PLADSDYBDE : PLADSDYBDE;
 }
 
 /** Afstand fra bordets nærmeste kant til tavlens væg. */

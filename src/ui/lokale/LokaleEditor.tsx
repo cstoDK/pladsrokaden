@@ -213,7 +213,11 @@ function RumEditor(props: {
     return () => document.removeEventListener('keydown', ved);
   }, []);
 
-  const u = Math.max(44, Math.min(56, Math.floor((bredde - 4) / l.bredde)));
+  // Hele lokalet skal kunne ses uden at rulle.
+  const hoejde = Math.max(320, window.innerHeight - 160);
+  let u = Math.max(24, Math.floor(Math.min(80, (bredde - 6) / l.bredde, hoejde / l.hoejde)));
+  // På telefoner skal bordene være store nok til en finger; der ruller lokalet i stedet.
+  if (bredde < 700) u = Math.max(u, 74);
 
   /** Gemmer en ændring, der kan fortrydes. */
   function aendr(ny: Lokale, besked?: string, foer: Lokale = l) {
@@ -360,7 +364,7 @@ function RumEditor(props: {
         />
       )}
 
-      <div class="lokale editor" ref={ramme}>
+      <div class="lokale editor fuld" ref={ramme}>
         <div class="rum" style={{ '--u': `${u}px`, width: `${l.bredde * u}px`, height: `${l.hoejde * u}px` }}>
           <button
             type="button"

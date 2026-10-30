@@ -59,7 +59,7 @@ describe('data fra version 1', () => {
 
   it('flyttes over: lokalet bliver selvstændigt, planerne bevares', () => {
     const d = laesAppData(v1);
-    expect(d.version).toBe(2);
+    expect(d.version).toBe(3);
     expect(d.aktivKlasseId).toBe('k1');
     expect(d.lokaler).toHaveLength(1);
     expect(d.klasser[0]!.lokaleId).toBe(d.lokaler[0]!.id);
@@ -75,6 +75,26 @@ describe('data fra version 1', () => {
   it('ugyldige data giver tomme data i stedet for fejl', () => {
     expect(laesAppData({ version: 7 }).klasser).toEqual([]);
     expect(laesAppData(null).klasser).toEqual([]);
+  });
+});
+
+describe('oprydning af navne fra version 1 og 2', () => {
+  const v2 = (navne: string[]) => ({
+    version: 2,
+    lokaler: [],
+    klasser: [{ id: 'k', navn: '1.a', elever: navne.map((navn, i) => ({ id: `e${i}`, navn, koen: null })), holdAdskilt: [], faste: [], lokaleId: null, planer: [] }],
+  });
+
+  it('beholder kun første fornavn og skelner dubletter med forbogstav', () => {
+    const d = laesAppData(v2(['William Roland', 'Ida', 'Christian Erik Testesen', 'Christian Opdigt', 'Anne-Sofie', 'Ida H.']));
+    expect(d.klasser[0]!.elever.map((e) => e.navn)).toEqual(['William', 'Ida', 'Christian T.', 'Christian O.', 'Anne-Sofie', 'Ida H.']);
+  });
+
+  it('gælder også gamle sikkerhedskopier, men ikke nye', () => {
+    const gammel = fraFil(JSON.stringify({ filtype: 'pladsrokaden', ...v2(['Malte Skov']) }));
+    expect('klasser' in gammel && gammel.klasser[0]!.elever[0]!.navn).toBe('Malte');
+    const ny = fraFil(JSON.stringify({ filtype: 'pladsrokaden', ...v2(['Anna Isabel']), version: 3 }));
+    expect('klasser' in ny && ny.klasser[0]!.elever[0]!.navn).toBe('Anna Isabel');
   });
 });
 

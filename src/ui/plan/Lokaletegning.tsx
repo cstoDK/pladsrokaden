@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { type Plads } from '../../core/kladde';
-import { type ElevId, type Lokale, type Placering, MOBILSKAB, bordBredde, bordHoejde, forresteBorde } from '../../core/model';
+import { type ElevId, type Lokale, type Placering, MOBILSKAB, PLADSDYBDE, bordBredde, bordHoejde, forresteBorde } from '../../core/model';
 import { pladsGrupper, planGrupper } from '../../core/struktur';
 
 export interface Redigering {
@@ -47,20 +47,30 @@ export function Lokaletegning(props: Props) {
   const [rul, setRul] = useState(false);
   const [plads, setPlads] = useState(900);
 
-  // På skærmen fylder lokalet bredden. Hvert navn får den største skrift,
-  // der passer i pladsen; kun hvis et navn ville blive under 10 px, bliver
-  // lokalet bredere end skærmen.
+  // Hele lokalet skal kunne ses uden at rulle: det skaleres til både
+  // bredden og skærmens højde. Alle navne får samme skriftstørrelse, så det
+  // længste ord kan være i en plads; lange navne kan bryde ved mellemrum.
   const em = laengsteNavn(placering, props.navn);
   let maal = props.maal;
   if (!maal) {
-    let u = Math.min(110, Math.floor((plads - 6) / lokale.bredde));
-    if ((u - 8) / em < 10) u = Math.ceil(10 * em + 8);
-    u = Math.max(u, 50);
-    maal = { u, skrift: Math.min(17, u * 0.3), enhed: 'px' };
+    const hoejde = Math.max(320, (typeof window === 'undefined' ? 900 : window.innerHeight) - 50);
+    let u = Math.max(24, Math.floor(Math.min(140, (plads - 6) / lokale.bredde, hoejde / lokale.hoejde)));
+    // På telefoner kan et helt lokale ikke vises læsbart; der må skriften
+    // ikke blive under 11 px, og lokalet ruller i stedet til siden.
+    if (plads < 700) u = Math.max(u, 48, Math.ceil((11 * em) / 0.95 + 6), Math.ceil((11 * 1.15 * (flereOrd(placering, props.navn) ? 2 : 1) + 6) / PLADSDYBDE));
+    maal = { u, skrift: 22, enhed: 'px' };
   }
   const m = maal;
-  const rumStil = { '--u': `${m.u}${m.enhed}`, width: `${m.u * lokale.bredde}${m.enhed}`, height: `${m.u * lokale.hoejde}${m.enhed}` };
-  const navneskrift = (n: string) => `${Math.min(m.skrift, ((m.u - (m.enhed === 'px' ? 8 : 2)) * 0.97) / navnebredde(n)).toFixed(2)}${m.enhed}`;
+  // Navnet skal kunne være i pladsens bredde (længste ord) og højde (1 eller 2 linjer).
+  const kant = m.enhed === 'px' ? 6 : 1.5;
+  const linjer = flereOrd(placering, props.navn) ? 2 : 1;
+  const navnSkrift = Math.min(m.skrift, ((m.u - kant) * 0.95) / em, (m.u * PLADSDYBDE - kant) / (linjer * 1.15));
+  const rumStil = {
+    '--u': `${m.u}${m.enhed}`,
+    '--navn': `${navnSkrift.toFixed(2)}${m.enhed}`,
+    width: `${m.u * lokale.bredde}${m.enhed}`,
+    height: `${m.u * lokale.hoejde}${m.enhed}`,
+  };
 
   useEffect(() => {
     const el = ramme.current;
@@ -78,14 +88,14 @@ export function Lokaletegning(props: Props) {
   const kanRulle = rul && !props.klasse;
   return (
     <div
-      class={`lokale ${props.klasse ?? ''}`}
+      class={`lokale ${props.klasse ?? 'fuld'}`}
       ref={ramme}
       role={kanRulle ? 'region' : undefined}
       aria-label={kanRulle ? 'Lokalet (kan rulles til siden)' : undefined}
       tabIndex={kanRulle ? 0 : undefined}
     >
       {props.overskrift && <h2 class="skjult">{props.overskrift}</h2>}
-      {kanRulle && <p class="hjaelp rul-hint">Stryg til siden for at se hele lokalet.</p>}
+
       <div class="rum" style={rumStil}>
         <Tavle lokale={lokale} />
         {lokale.mobilskab && (
@@ -118,9 +128,7 @@ export function Lokaletegning(props: Props) {
                   return (
                     <div key={pi} class={`plads${elevId ? '' : ' tom'}${kant}`} style={stil}>
                       {maerke}
-                      <span class="plads-navn" style={navn ? { fontSize: navneskrift(navn) } : undefined}>
-                        {navn || <span class="skjult">Tom plads</span>}
-                      </span>
+                      <span class="plads-navn">{navn || <span class="skjult">Tom plads</span>}</span>
                     </div>
                   );
                 }
@@ -152,7 +160,6 @@ export function Lokaletegning(props: Props) {
                       class="plads-knap"
                       draggable={!!elevId}
                       aria-pressed={valgt}
-                      style={navn ? { fontSize: navneskrift(navn) } : undefined}
                       aria-label={`${beskrivelse}${laast ? ', låst' : ''}`}
                       onClick={() => r.onVaelg(p)}
                       onDragStart={(e) => {
@@ -197,7 +204,7 @@ function erGruppeStart(m: Map<string, Info>, bordId: string, plads: number): boo
 
 export function Tavle(props: { lokale: Lokale }) {
   const { tavle, bredde, hoejde } = props.lokale;
-  const tyk = 0.55;
+  const tyk = 0.45;
   const vandret = tavle.vaeg === 'top' || tavle.vaeg === 'bund';
   const start = tavle.midte - tavle.laengde / 2;
   const stil = vandret
@@ -230,10 +237,19 @@ export function navnebredde(navn: string): number {
   return ctx.measureText(navn).width / 100;
 }
 
+function flereOrd(placering: Placering | undefined, navn?: (id: ElevId) => string): boolean {
+  if (!placering || !navn) return false;
+  return Object.values(placering).some((p) => p.some((id) => !!id && navn(id).includes(' ')));
+}
+
+/** Bredden (em) af det længste ord i nogen af navnene. Navne kan bryde ved mellemrum. */
 export function laengsteNavn(placering: Placering | undefined, navn?: (id: ElevId) => string): number {
   if (!placering || !navn) return 4;
-  const navne = Object.values(placering).flat().filter((x): x is string => !!x).map(navn);
-  return Math.max(3.5, ...navne.map(navnebredde));
+  const ord = Object.values(placering)
+    .flat()
+    .filter((x): x is string => !!x)
+    .flatMap((id) => navn(id).split(/\s+/));
+  return Math.max(3.2, ...ord.map(navnebredde));
 }
 
 export function LaasIkon(props: { laast: boolean }) {

@@ -263,6 +263,8 @@ progress { width: 100%; height: 0.75rem; accent-color: var(--accent); }
 /* ---------- Lokalet ---------- */
 
 .lokale { overflow-x: auto; padding: 0.25rem 0 0.75rem; }
+/* Planen og lokale-editoren må bruge hele skærmens bredde. */
+main:has(.lokale.fuld) { max-width: none; }
 .rum {
   position: relative; margin: 0 auto; background: var(--flade);
   border: 2px solid var(--kant-staerk); border-radius: 6px;
@@ -299,13 +301,14 @@ progress { width: 100%; height: 0.75rem; accent-color: var(--accent); }
 .plads.gruppe-start { box-shadow: inset 3px 0 0 #fff; }
 .bord.lodret .plads.gruppe-start { box-shadow: inset 0 3px 0 #fff; }
 .plads.tom { background: transparent; }
-.plads-navn { padding: 0 0.3rem; font-weight: 700; display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; line-height: 1.1; white-space: nowrap; }
+.plads-navn { padding: 0 0.2em; font-weight: 700; display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; line-height: 1.1; font-size: var(--navn); word-break: keep-all; overflow-wrap: normal; }
 .gruppe-maerke {
   position: absolute; top: 2px; left: 3px; font-size: 0.65rem; font-weight: 700; color: #3d3d39; line-height: 1;
 }
 .plads-knap {
   flex: 1; min-width: 0; min-height: var(--trykflade); border: none; background: none; cursor: grab;
-  font-weight: 700; padding: 0 0.3rem; white-space: nowrap; line-height: 1.1; border-radius: 4px; text-align: center;
+  font-weight: 700; padding: 0 0.2em; line-height: 1.1; border-radius: 4px; text-align: center;
+  font-size: var(--navn); word-break: keep-all; overflow-wrap: normal;
 }
 .plads.tom .plads-knap { color: var(--daempet); font-weight: 400; cursor: pointer; }
 .plads.valgt { background: var(--accent) !important; }
@@ -395,7 +398,6 @@ progress { width: 100%; height: 0.75rem; accent-color: var(--accent); }
 
 @media (max-width: 560px) {
   .lokale { --plads-min: 5.5rem; }
-  .plads-knap, .plads-navn { font-size: 0.95rem; }
 }
 .rul-hint { position: sticky; left: 0; margin-top: 0; }
 

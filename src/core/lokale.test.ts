@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { fjernTomPlads, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
+import { fraDybeBorde, fjernTomPlads, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
 import { forresteBorde } from './model';
 
 describe('lavLokale', () => {
   it('lægger borde i rækker med tavlen øverst og et mobilskab', () => {
     const l = lavLokale({ antalBorde: 5, pladserPrBord: 4, bordePrRaekke: 3 }, '007');
     expect(l.navn).toBe('007');
-    expect(l.borde.map((b) => [b.x, b.y])).toEqual([[1, 2], [6, 2], [11, 2], [1, 4], [6, 4]]);
+    expect(l.borde.map((b) => [b.x, b.y])).toEqual([[1, 1.5], [6, 1.5], [11, 1.5], [1, 2.8], [6, 2.8]]);
     expect(l.tavle.vaeg).toBe('top');
     expect(l.mobilskab).not.toBeNull();
     expect(l.bredde).toBeGreaterThanOrEqual(16);
@@ -52,7 +52,7 @@ describe('størrelse og rækkefølge', () => {
     l.mobilskab = null;
     fjernTomPlads(l);
     expect(l.borde.map((b) => [b.x, b.y])).toEqual([[1, 1], [6, 1]]);
-    expect(l.hoejde).toBe(6.5); // mindst 6, plus luft ved tavlen
+    expect(l.hoejde).toBe(4.5); // mindst 4, plus luft ved tavlen
   });
   it('foreslår opstillinger ud fra klassens størrelse', () => {
     expect(foreslaaIndstillinger('raekker', 31)).toEqual({ antalBorde: 3, pladserPrBord: 11, bordePrRaekke: 1 });
@@ -61,10 +61,18 @@ describe('størrelse og rækkefølge', () => {
   });
 });
 
+it('lokaler fra version 2 presses sammen lodret, fordi bordene nu er lavere', () => {
+  const l = lavLokale({ antalBorde: 2, pladserPrBord: 4, bordePrRaekke: 1 });
+  l.borde[0]!.y = 2;
+  l.borde[1]!.y = 4;
+  fraDybeBorde(l);
+  expect(l.borde.map((b) => b.y)).toEqual([1.5, 3]);
+});
+
 describe('fraV1', () => {
   it('bevarer bordenes id og pladser og omsætter rækker til positioner', () => {
     const l = fraV1({ borde: [{ id: 'a', raekke: 0, kolonne: 0, pladser: 2 }, { id: 'b', raekke: 1, kolonne: 1, pladser: 2 }], forresteRaekker: 1 });
-    expect(l.borde.map((b) => [b.id, b.x, b.y, b.pladser])).toEqual([['a', 1, 2, 2], ['b', 4, 4, 2]]);
+    expect(l.borde.map((b) => [b.id, b.x, b.y, b.pladser])).toEqual([['a', 1, 1.5, 2], ['b', 4, 2.8, 2]]);
     expect([...forresteBorde(l)]).toEqual(['a']);
   });
 });

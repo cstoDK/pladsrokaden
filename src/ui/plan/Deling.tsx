@@ -113,7 +113,7 @@ function Tavlevisning(props: { klasse: Klasse; plan: Plan; onLuk: () => void }) 
         </button>
       </div>
       {visning === 'plan' ? (
-        <Lokaletegning lokale={l} placering={props.plan.placering} navn={navn} klasse="stor" maal={{ u, skrift: u * 0.36, enhed: 'px' }} />
+        <Lokaletegning lokale={l} placering={props.plan.placering} navn={navn} klasse="stor" maal={{ u, skrift: 64, enhed: 'px' }} />
       ) : (
         <div class="tavle-grupper">
           <GruppeOversigt plan={props.plan} navn={navn} />
@@ -156,7 +156,7 @@ export function PrintArk() {
           <strong>Siddepladser, {klasse.navn}</strong>
           <span>{titel}</span>
         </div>
-        <Lokaletegning lokale={l} placering={plan.placering} navn={navn} klasse="print" maal={{ u, skrift: Math.min(u * 0.34, 9), enhed: 'mm' }} />
+        <Lokaletegning lokale={l} placering={plan.placering} navn={navn} klasse="print" maal={{ u, skrift: 9, enhed: 'mm' }} />
       </section>
       <section class="print-side">
         <div class="print-hoved">

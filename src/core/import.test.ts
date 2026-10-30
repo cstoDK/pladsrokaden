@@ -1,6 +1,6 @@
 // Alle navne, numre og adresser herunder er opdigtede.
 import { describe, expect, it } from 'vitest';
-import { findDubletter, navngivDubletter, retOcrTekst, rydNavn, udtraekFraLinjer, udtraekFraTekst } from './import';
+import { findDubletter, kunFornavn, navngivDubletter, retOcrTekst, rydNavn, udtraekFraLinjer, udtraekFraTekst } from './import';
 
 const fornavne = (t: string) => udtraekFraTekst(t).elever.map((e) => e.fornavn);
 
@@ -71,6 +71,19 @@ describe('udtraekFraTekst: Ludus-lignende lister', () => {
 });
 
 describe('udtraekFraTekst: separate kolonner og køn', () => {
+  it('Fornavn-kolonnen med mellemnavne giver kun første fornavn', () => {
+    // Mellemnavne er ofte slægtsnavne (fx Skov, Frost) og må ikke gemmes.
+    const tekst = [
+      'Fornavn\tEfternavn\tKlasse',
+      'Erik Skov\tOpdigtsen\t1x',
+      'Villads Frost\tTestesen\t1x',
+      'Juan Francisco\tEksempel\t1x',
+      'Anne-Sofie Lund\tPrøvesen\t1x',
+    ].join('\n');
+    expect(fornavne(tekst)).toEqual(['Erik', 'Villads', 'Juan', 'Anne-Sofie']);
+    expect(udtraekFraTekst(tekst).elever.map((e) => e.efternavnStart)).toEqual(['Op', 'Te', 'Ek', 'Pr']);
+  });
+
   it('Fornavn, Efternavn og Køn med overskrift', () => {
     const tekst = [
       'Fornavn\tEfternavn\tKøn\tKlasse',
@@ -80,7 +93,7 @@ describe('udtraekFraTekst: separate kolonner og køn', () => {
     ].join('\n');
     const r = udtraekFraTekst(tekst);
     expect(r.elever).toEqual([
-      { fornavn: 'Ida Marie', efternavnStart: 'Te', koen: 'P' },
+      { fornavn: 'Ida', efternavnStart: 'Te', koen: 'P' },
       { fornavn: 'Malte', efternavnStart: 'Je', koen: 'D' },
       { fornavn: 'Freja', efternavnStart: 'Op', koen: 'P' },
     ]);
@@ -210,6 +223,19 @@ describe('navngivDubletter', () => {
       { navn: 'Noah H.', dublet: true },
       { navn: 'Noah H.', dublet: true },
     ]);
+  });
+});
+
+describe('kunFornavn', () => {
+  it('beholder kun første fornavn og et evt. forbogstav', () => {
+    expect(['Ida', 'Ida H.', 'Ida Ha.', 'Anne-Sofie', 'William Roland', 'Christian Erik Testesen', ' Ida  '].map(kunFornavn)).toEqual([
+      'Ida', 'Ida H.', 'Ida Ha.', 'Anne-Sofie', 'William', 'Christian', 'Ida',
+    ]);
+  });
+  it('ingen importvej giver mere end ét fornavn', () => {
+    const tekster = ['Navn\nTestesen, Ida Marie Skov', 'IDA MARIE TESTESEN', 'Fornavn\tEfternavn\nIda Marie Skov\tHansen\nMalte\tJensen', '1.a 01 Ida Marie Skov Testesen'];
+    for (const t of tekster) for (const e of udtraekFraTekst(t).elever) expect(e.fornavn.split(' ')).toHaveLength(1);
+    for (const e of udtraekFraLinjer('Ida Marie Skov P\nMalte Opdigt Jensen').elever) expect(e.fornavn.split(' ')).toHaveLength(1);
   });
 });
 
