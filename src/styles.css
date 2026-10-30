@@ -168,7 +168,7 @@ input[aria-invalid='true'] { border-color: var(--fejl); border-width: 2px; }
   border: none; background: none; cursor: pointer; font-weight: 700; color: var(--daempet);
   border-bottom: 3px solid transparent; margin-bottom: -1px;
 }
-.fane[aria-selected='true'] { color: var(--tekst); border-bottom-color: var(--accent); }
+.fane[aria-selected='true'], .fane[aria-current='page'] { color: var(--tekst); border-bottom-color: var(--accent); }
 .fane:hover { color: var(--tekst); }
 
 /* ---------- Import ---------- */
@@ -249,3 +249,117 @@ progress { width: 100%; height: 0.75rem; accent-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- Lokalet ---------- */
+
+.lokale { --plads-min: 6.25rem; overflow-x: auto; padding-bottom: 0.5rem; }
+.tavle {
+  margin: 0 auto 1rem; width: min(60%, 28rem); text-align: center;
+  background: #2f3b35; color: #f1f1ec; border-radius: 6px;
+  padding: 0.35rem; font-weight: 700; letter-spacing: 0.05em;
+}
+.lokale-gitter { display: grid; gap: 0.75rem; min-width: min-content; }
+.bord {
+  background: var(--flade); border: 1px solid var(--kant); border-radius: var(--radius);
+  padding: 0.5rem; display: flex; flex-direction: column; gap: 0.375rem;
+}
+.bord.forrest { border-color: var(--accent); box-shadow: inset 0 3px 0 var(--accent); }
+.bord-titel { font-size: 0.875rem; margin: 0; color: var(--daempet); display: flex; gap: 0.5rem; align-items: center; }
+.maerke-forrest { font-size: 0.75rem; background: var(--accent-svag); color: var(--accent-hover); padding: 0 0.5rem; border-radius: 999px; }
+.bord-pladser { display: grid; gap: 0.375rem; grid-template-columns: repeat(2, minmax(var(--plads-min), 1fr)); }
+.bord-pladser.n1 { grid-template-columns: minmax(var(--plads-min), 1fr); }
+.bord-pladser.n5, .bord-pladser.n6 { grid-template-columns: repeat(3, minmax(var(--plads-min), 1fr)); }
+
+.plads {
+  display: flex; align-items: stretch; min-height: var(--trykflade);
+  border: 1px solid var(--kant); border-radius: 8px; background: var(--flade-2);
+  min-width: 0;
+}
+.plads.form { background: var(--flade-2); min-height: 2rem; }
+.plads.tom { background: transparent; border-style: dashed; }
+.plads-navn { padding: 0.5rem; font-weight: 700; overflow-wrap: break-word; display: flex; align-items: center; }
+.plads-knap {
+  flex: 1; min-width: 0; min-height: var(--trykflade); border: none; background: none; cursor: grab;
+  font-weight: 700; text-align: left; padding: 0.375rem 0.5rem; overflow-wrap: break-word; hyphens: manual; line-height: 1.2;
+  border-radius: 8px;
+}
+.plads.tom .plads-knap { color: var(--daempet); font-weight: 400; cursor: pointer; }
+.plads.valgt { background: var(--accent); border-color: var(--accent); }
+.plads.valgt .plads-knap, .plads.valgt .laas-knap { color: #fff; }
+.plads.over { outline: 3px dashed var(--accent); outline-offset: 1px; }
+.plads.laast { border-color: var(--tekst); border-width: 2px; }
+.laas-knap {
+  flex: none; width: 36px; min-height: var(--trykflade); border: none; background: none; cursor: pointer;
+  color: var(--daempet); display: grid; place-items: center; border-radius: 8px;
+}
+.plads.laast .laas-knap { color: var(--tekst); }
+.laas-knap:hover, .plads-knap:hover { background: rgba(0, 0, 0, 0.06); }
+
+.bord-problemer { list-style: none; margin: 0; padding: 0; font-size: 0.875rem; line-height: 1.35; }
+.bord-problemer li { padding-left: 0.875rem; position: relative; color: var(--bemaerk); }
+.bord-problemer li::before { content: ''; position: absolute; left: 0; top: 0.45em; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: currentColor; }
+.bord-problemer li.fejl { color: var(--fejl); font-weight: 700; }
+
+/* ---------- Statusmærker ---------- */
+
+.statusliste { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.statusliste li {
+  border-radius: 999px; padding: 0.25rem 0.75rem 0.25rem 0.625rem; font-size: 0.95rem; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 0.375rem;
+}
+.statusliste li::before { content: ''; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; }
+.statusliste .ok { background: var(--ok-svag); color: var(--ok); }
+.statusliste .bemaerk { background: var(--bemaerk-svag); color: var(--bemaerk); }
+.statusliste .fejl { background: var(--fejl-svag); color: var(--fejl); }
+
+/* ---------- Kladde ---------- */
+
+.kladde-banner {
+  background: var(--bemaerk-svag); border: 1px solid #ecd391; border-radius: var(--radius);
+  padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
+}
+.kladde-banner strong { margin-right: auto; }
+.vaerktoejer { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center; }
+.vaerktoejer .afstand { flex: 1; }
+.planhoved { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: center; margin-bottom: 1rem; }
+.planhoved h1 { margin: 0; margin-right: auto; }
+.datofelt { display: flex; gap: 0.5rem; align-items: center; }
+.datofelt label { margin: 0; }
+.datofelt input { width: auto; }
+
+/* ---------- Lokale-editor ---------- */
+
+.skabeloner { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+.skabelon {
+  border: 2px solid var(--kant); border-radius: var(--radius); background: var(--flade);
+  padding: 0.75rem; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 0.5rem; min-height: var(--trykflade);
+}
+.skabelon[aria-checked='true'] { border-color: var(--accent); background: var(--accent-svag); }
+.skabelon-navn { font-weight: 700; }
+.skabelon-beskrivelse { font-size: 0.9rem; color: var(--daempet); }
+.mini { display: flex; gap: 4px; flex-wrap: wrap; width: 4.5rem; }
+.mini span { width: 9px; height: 9px; border-radius: 2px; background: var(--kant-staerk); }
+.mini-bord { display: flex; gap: 6px; }
+.mini-bord > div { display: grid; grid-template-columns: repeat(2, 9px); gap: 2px; padding: 3px; border: 1px solid var(--kant-staerk); border-radius: 3px; }
+.mini-bord > div span { width: 9px; height: 9px; border-radius: 2px; background: var(--kant-staerk); display: block; }
+
+.taellere { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; margin: 1rem 0; }
+.taeller { display: flex; align-items: center; gap: 0.25rem; }
+.taeller input { width: 4.5rem; text-align: center; }
+.taeller .knap { padding: 0; width: var(--trykflade); font-size: 1.25rem; }
+
+/* ---------- Elever ---------- */
+
+.parliste { list-style: none; padding: 0; margin: 0 0 1rem; }
+.parliste li { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; border-bottom: 1px solid var(--flade-2); }
+.parliste li span { flex: 1; }
+.vaelg-to { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; }
+.vaelg-to > div { flex: 1 1 10rem; }
+.vaelg-to select { width: 100%; }
+
+@media (max-width: 560px) {
+  .lokale { --plads-min: 5.5rem; }
+  .plads-knap, .plads-navn { font-size: 0.95rem; }
+  .laas-knap { width: 30px; }
+}
+.rul-hint { position: sticky; left: 0; margin-top: 0; }

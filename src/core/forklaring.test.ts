@@ -54,6 +54,11 @@ describe('forklar: grupper', () => {
     expect(f.status.map((s) => s.tekst)).toContain('1 elev mangler køn og tæller ikke med i kønsfordelingen');
   });
 
+  it('siger ikke "to gange i træk" ved første plan', () => {
+    const f = forklar({ elever: seks, lokale, placering: { B1: ['a', 'e', 'd'], B2: ['c', 'b', 'f'] }, tidligere: [], holdAdskilt: [] });
+    expect(f.status.map((s) => s.tekst)).toContain('1 er eneste af sit køn ved bordet');
+  });
+
   it('roser en plan uden nogen alene om sit køn', () => {
     const f = forklar({ elever: seks, lokale, placering: { B1: ['a', 'c', 'f'], B2: ['b', 'd', 'e'] }, tidligere: [], holdAdskilt: [] });
     expect(f.status.map((s) => s.tekst)).toContain('Ingen er eneste af sit køn ved et bord');

@@ -1,9 +1,10 @@
 import { useState } from 'preact/hooks';
-import { type Klasse, nyId, nyKlasse } from '../core/model';
+import { nyId, nyKlasse } from '../core/model';
 import { harLagerFejl, opdater, useData } from '../app/tilstand';
 import { Beskeder, Trinviser } from './Faelles';
 import { Import } from './import/Import';
 import { type KontrolRaekke } from './import/Kontrol';
+import { KlasseVisning } from './Klasse';
 
 export function App() {
   const data = useData();
@@ -140,20 +141,4 @@ function NyKlasse(props: { onFaerdig: () => void; kanAnnullere: boolean }) {
       />
     </div>
   );
-}
-
-function KlasseVisning(props: { klasse: Klasse }) {
-  const k = props.klasse;
-  if (!k.lokale) {
-    return (
-      <div class="smal">
-        <Trinviser aktuelt={2} />
-        <h1>Lokalet</h1>
-        <p class="daempet">
-          {k.navn} har {k.elever.length} elever. Opsætning af lokalet kommer i næste version.
-        </p>
-      </div>
-    );
-  }
-  return <p>Planvisning kommer i næste version.</p>;
 }

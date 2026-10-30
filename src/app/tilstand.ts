@@ -66,7 +66,7 @@ const beskedLyttere = new Set<() => void>();
 
 export function visBesked(tekst: string, fortryd?: () => void): void {
   const id = naesteId++;
-  beskeder = [...beskeder.slice(-2), { id, tekst, fortryd }];
+  beskeder = [...beskeder.filter((b) => b.tekst !== tekst).slice(-2), { id, tekst, fortryd }];
   beskedLyttere.forEach((l) => l());
   setTimeout(() => lukBesked(id), fortryd ? 10000 : 5000);
 }

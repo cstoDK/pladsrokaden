@@ -126,7 +126,8 @@ export function forklar(input: ForklaringsInput): Forklaring {
   if (harStoreBorde) {
     if (alene === 0) status.push({ niveau: 'ok', tekst: 'Ingen er eneste af sit køn ved et bord' });
     else if (aleneIgen > 0) status.push({ niveau: 'bemaerk', tekst: `${aleneIgen} er eneste af sit køn ved bordet igen` });
-    else status.push({ niveau: 'bemaerk', tekst: `${alene} er eneste af sit køn ved bordet, men ingen to gange i træk` });
+    else if (harHistorik) status.push({ niveau: 'bemaerk', tekst: `${alene} er eneste af sit køn ved bordet, men ingen to gange i træk` });
+    else status.push({ niveau: 'bemaerk', tekst: `${alene} er eneste af sit køn ved bordet` });
   }
 
   const udenKoen = elever.filter((e) => e.koen === null).length;
