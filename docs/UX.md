@@ -100,3 +100,20 @@ WCAG 2.2 (2.5.8 Target Size Minimum). Gennemgået på planskærmen ved 1280×650
 | 7 | Navne i lokalet er læsbare | Mindst 13 px og altid inde i pladsen; hellere rulle lidt end ulæselig tekst |
 | 8 | Trykflader | 36 px med mus, 44 px på berøringsskærme (mindstekrav er 24 px) |
 | 9 | Kontrast og konsistens | axe: ingen fejl på 26 skærme |
+
+### Anden runde: ro i layoutet
+
+Tjeklisten ovenfor gjorde toppen mindre, men siden føltes stadig urolig ved
+normal zoom. Årsagerne og rettelserne:
+
+- **Ingen marginer.** Indholdet gik næsten fra kant til kant. Nu står alt i én
+  centreret spalte på 960 px med brede marginer (op til 6 rem), også i
+  topbjælken, så øjet har et fast sted at starte.
+- **To menuer oven på hinanden.** Under opsætningen er trinene (Elever, Lokale,
+  Første plan) nu den eneste navigation; fanerne kommer først, når den første
+  plan er gemt.
+- **For meget fed skrift.** Knapper, faner og feltnavne er halvfede (600) i
+  stedet for fede; trinene er ikke længere understregede.
+- **Mere luft.** Større afstand mellem kort og omkring overskrifter.
+- **Lokalet som et stort billede.** Teksten står i den smalle spalte, men
+  lokalet må gå ud over den (op til 1240 px), så navnene stadig er mindst 13 px.

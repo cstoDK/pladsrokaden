@@ -19,7 +19,9 @@
   --ok-svag: #e5f3ea;
   --fokus: #1b5fc1;
   --radius: 10px;
-  --trykflade: 36px;
+  --trykflade: 40px;
+  --spalte: 960px;
+  --margen: clamp(1rem, 7vw, 6rem);
   --skrift: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
   color-scheme: light;
 }
@@ -40,8 +42,8 @@ body {
 }
 
 h1, h2, h3 { line-height: 1.25; margin: 0 0 0.5rem; }
-h1 { font-size: 1.375rem; }
-h2 { font-size: 1.1875rem; }
+h1 { font-size: 1.625rem; margin-bottom: 0.75rem; }
+h2 { font-size: 1.25rem; margin-bottom: 0.75rem; }
 h3 { font-size: 1.0625rem; }
 p { margin: 0 0 1rem; }
 a { color: var(--accent); }
@@ -74,7 +76,7 @@ a { color: var(--accent); }
   border-bottom: 1px solid var(--kant);
 }
 .topbjaelke-indre {
-  max-width: 1100px; margin: 0 auto; padding: 0.5rem 1rem;
+  max-width: calc(var(--spalte) + 2 * var(--margen)); margin: 0 auto; padding: 0.5rem var(--margen);
   display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
 }
 .logo { font-weight: 700; font-size: 1.125rem; margin-right: auto; }
@@ -83,17 +85,17 @@ a { color: var(--accent); }
 
 /* ---------- Layout ---------- */
 
-main { max-width: 1100px; margin: 0 auto; padding: 1rem 1rem 2rem; }
+main { max-width: calc(var(--spalte) + 2 * var(--margen)); margin: 0 auto; padding: 2rem var(--margen) 3rem; }
 main h1:focus { outline: none; }
-.sidefod { max-width: 1100px; margin: 0 auto; padding: 1rem 1rem 6rem; color: var(--daempet); font-size: 0.95rem; border-top: 1px solid var(--kant); }
+.sidefod { max-width: calc(var(--spalte) + 2 * var(--margen)); margin: 0 auto; padding: 1rem var(--margen) 6rem; color: var(--daempet); font-size: 0.95rem; border-top: 1px solid var(--kant); }
 .sidefod p { margin: 0; }
 .smal { max-width: 720px; }
 .kort {
   background: var(--flade);
   border: 1px solid var(--kant);
-  border-radius: var(--radius);
-  padding: 1.25rem;
-  margin-bottom: 1rem;
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.5rem;
 }
 .daempet { color: var(--daempet); }
 .raekke { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
@@ -111,7 +113,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border: 1px solid var(--kant-staerk);
   background: var(--flade);
   color: var(--tekst);
-  font-weight: 700; font-size: 0.9375rem;
+  font-weight: 600; font-size: 1rem;
   cursor: pointer;
   text-decoration: none;
   line-height: 1.2;
@@ -126,8 +128,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .knap-tekst:hover { background: var(--accent-svag); }
 .knap-fare { color: var(--fejl); }
 
-label { font-weight: 700; display: block; margin-bottom: 0.25rem; }
-.hjaelp { font-size: 0.95rem; color: var(--daempet); margin: 0.25rem 0 0.5rem; }
+label { font-weight: 600; display: block; margin-bottom: 0.25rem; }
+.hjaelp { font-size: 1rem; color: var(--daempet); margin: 0.25rem 0 0.5rem; }
 
 input[type='text'], input[type='date'], input[type='number'], select, textarea {
   min-height: var(--trykflade);
@@ -146,8 +148,8 @@ input[aria-invalid='true'] { border-color: var(--fejl); border-width: 2px; }
 /* ---------- Trinviser ---------- */
 
 .trin {
-  list-style: none; padding: 0; margin: 0 0 0.75rem; font-size: 0.9375rem;
-  display: flex; gap: 0.5rem; flex-wrap: wrap;
+  list-style: none; padding: 0; margin: 0 0 2rem;
+  display: flex; gap: 0.5rem 1.5rem; flex-wrap: wrap;
   counter-reset: trin;
 }
 .trin li {
@@ -169,10 +171,9 @@ input[aria-invalid='true'] { border-color: var(--fejl); border-width: 2px; }
 /* ---------- Faneblade ---------- */
 
 .faner { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--kant); margin-bottom: 1rem; flex-wrap: wrap; }
-.fane { font-size: 0.9375rem; }
 .fane {
   min-height: var(--trykflade); padding: 0.5rem 1rem;
-  border: none; background: none; cursor: pointer; font-weight: 700; color: var(--daempet);
+  border: none; background: none; cursor: pointer; font-weight: 600; color: var(--daempet);
   border-bottom: 3px solid transparent; margin-bottom: -1px;
 }
 .fane[aria-selected='true'], .fane[aria-current='page'] { color: var(--tekst); border-bottom-color: var(--accent); }
@@ -267,8 +268,10 @@ progress { width: 100%; height: 0.75rem; accent-color: var(--accent); }
 /* ---------- Lokalet ---------- */
 
 .lokale { overflow-x: auto; padding: 0.25rem 0 0.75rem; }
+/* Teksten står i en smal spalte, men lokalet er som et stort billede i en artikel: det må gå ud over spalten. */
+.lokale.fuld { margin-inline: min(0px, calc(50% - min(50vw - 1.5rem, 620px))); }
 /* Planen og lokale-editoren må bruge hele skærmens bredde. */
-main:has(.lokale.fuld) { max-width: 1500px; }
+
 .rum {
   position: relative; margin: 0 auto; background: var(--flade);
   border: 2px solid var(--kant-staerk); border-radius: 6px;
@@ -535,8 +538,8 @@ body.tavle-aaben { overflow: hidden; }
 .logo { color: var(--tekst); text-decoration: none; min-height: var(--trykflade); display: inline-flex; align-items: center; }
 .logo:hover { text-decoration: underline; }
 a.fane { display: inline-flex; align-items: center; text-decoration: none; }
-.trin li a { color: inherit; font-weight: 700; text-decoration: underline; min-height: var(--trykflade); display: inline-flex; align-items: center; }
-.trin li a:hover { color: var(--accent); }
+.trin li a { color: inherit; font-weight: 600; text-decoration: none; min-height: var(--trykflade); display: inline-flex; align-items: center; }
+.trin li a:hover { color: var(--accent); text-decoration: underline; }
 .klasseliste { list-style: none; padding: 0; margin: 0 0 1.5rem; display: grid; gap: 0.75rem; }
 .klassekort {
   display: grid; gap: 0.15rem; padding: 1rem 1.25rem; border: 1px solid var(--kant); border-radius: var(--radius);

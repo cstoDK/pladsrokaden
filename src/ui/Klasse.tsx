@@ -1,6 +1,6 @@
-// Klassens skærm. Fanerne Plan, Elever, Lokale og Historik er altid
-// synlige, så man frit kan gå frem og tilbage. Mens klassen sættes op,
-// viser trinene (Elever, Lokale, Første plan), hvor langt man er.
+// Klassens skærm. Mens klassen sættes op, er trinene (Elever, Lokale,
+// Første plan) navigationen og viser, hvor langt man er. Bagefter er
+// fanerne Plan, Elever, Lokale og Historik altid synlige.
 
 import { type Fane, gaaTil, tilHash } from '../app/navigation';
 import { useData, visBesked } from '../app/tilstand';
@@ -45,13 +45,16 @@ export function KlasseVisning(props: { klasse: Klasse; fane: Fane | null; forhaa
           ]}
         />
       )}
-      <nav class="faner" aria-label={`Klasse ${k.navn}`}>
-        {FANER.map((f) => (
-          <a key={f.id} class="fane" href={til(f.id)} aria-current={fane === f.id ? 'page' : undefined}>
-            {f.navn}
-          </a>
-        ))}
-      </nav>
+      {/* Under opsætningen er trinviseren navigationen; to menuer oven på hinanden er for meget. */}
+      {!opsaetning && (
+        <nav class="faner" aria-label={`Klasse ${k.navn}`}>
+          {FANER.map((f) => (
+            <a key={f.id} class="fane" href={til(f.id)} aria-current={fane === f.id ? 'page' : undefined}>
+              {f.navn}
+            </a>
+          ))}
+        </nav>
+      )}
 
       {fane === 'plan' &&
         (k.elever.length === 0 ? (

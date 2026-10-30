@@ -358,8 +358,8 @@ function RumEditor(props: {
     <section class="kort" aria-labelledby="rum-titel">
       <h2 id="rum-titel">Indret lokalet</h2>
       <p class="hjaelp">
-        <strong>Træk bordene, tavlen og mobilskabet på plads.</strong> Bordene klikker fast i gitteret; slip et bord ved enden af et
-        andet, så står de sammen. Tryk på et bord for at ændre pladser eller dreje det. Tastatur: Tab og piletaster.
+        Træk bordene, tavlen og mobilskabet på plads. Slip et bord ved enden af et andet, så står de sammen. Tryk på et bord
+        for at ændre det.<span class="skjult"> Med tastatur: Tab og piletaster.</span>
       </p>
       <div class="vaerktoejer">
         {kanSaettesSammen(l) && (
