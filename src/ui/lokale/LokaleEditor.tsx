@@ -10,7 +10,7 @@ import {
   type SkabelonId,
   foreslaaIndstillinger,
   lavLokale,
-  iGitter,
+  bordPlacering,
   kanSaettesSammen,
   normaliserLokale,
   retBordeneInd,
@@ -261,7 +261,7 @@ function RumEditor(props: {
       const b = k.borde.find((x) => x.id === v.id);
       if (b) {
         // Bordene klikker fast til gitteret (hele pladser vandret, rækker lodret).
-        const g = iGitter(b.x + dx, b.y + dy);
+        const g = bordPlacering(k, b.id, b.x + dx, b.y + dy);
         b.x = g.x;
         b.y = g.y;
       }

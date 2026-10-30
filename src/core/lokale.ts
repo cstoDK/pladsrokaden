@@ -179,6 +179,24 @@ export function iGitter(x: number, y: number): { x: number; y: number } {
 }
 
 /**
+ * Hvor et bord lander, når det trækkes til (x, y). De rækker, der allerede
+ * står borde i, vejer tungere end gitteret: står rækkerne ikke præcis i
+ * gitteret (fx et lokale fra en ældre version), skal bordet stadig kunne
+ * sættes ind på rækken.
+ */
+export function bordPlacering(l: Lokale, bordId: string, x: number, y: number): { x: number; y: number } {
+  const g = iGitter(x, y);
+  const b = l.borde.find((d) => d.id === bordId);
+  let raekke: number | null = null;
+  for (const a of l.borde) {
+    if (a.id === bordId || a.lodret !== b?.lodret) continue;
+    const d = Math.abs(a.y - y);
+    if (d < RAEKKE_AFSTAND / 2 && (raekke === null || d < Math.abs(raekke - y))) raekke = a.y;
+  }
+  return { x: g.x, y: raekke ?? g.y };
+}
+
+/**
  * Retter bordene ind: borde (og borde, der står sammen) i samme række får
  * samme højde, rækkerne får samme afstand, og borde, der står næsten under
  * hinanden, rettes ind i samme kolonne.
