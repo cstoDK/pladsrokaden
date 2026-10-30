@@ -302,14 +302,14 @@ function LinjePanel(props: { onTekst: (t: string) => void }) {
       <div>
         <label for="linjer-felt">Ét navn pr. linje</label>
         <p class="hjaelp" id="linjer-hjaelp">
-          Skriv P (pige) eller D (dreng) efter navnet, hvis du vil. Fx "Ida P".
+          Skriv P (pige) eller D (dreng) og evt. GF-hold efter navnet, hvis du vil. Fx "Ida P GF02".
         </p>
         <textarea
           id="linjer-felt"
           aria-describedby="linjer-hjaelp"
           value={tekst}
           onInput={(e) => setTekst(e.currentTarget.value)}
-          placeholder={'Ida P\nMalte D\nSara'}
+          placeholder={'Ida P GF02\nMalte D GF01\nSara'}
           spellcheck={false}
           autocomplete="off"
         />

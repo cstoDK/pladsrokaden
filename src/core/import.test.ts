@@ -134,6 +134,17 @@ describe('grundforløbshold', () => {
     expect(normaliserHold('l26spa01')).toBeUndefined();
     expect(normaliserHold('52812')).toBeUndefined();
   });
+  it('"Skriv navne" forstår GF-hold på linjen', () => {
+    const r = udtraekFraLinjer('Ida P GF02\nMalte GF1 D\nSara GF07\nOmar D\n1.GF03-DIG Emil D');
+    expect(r.elever).toEqual([
+      { fornavn: 'Ida', koen: 'P', hold: 'GF02' },
+      { fornavn: 'Malte', koen: 'D', hold: 'GF01' },
+      { fornavn: 'Sara', koen: null, hold: 'GF07' },
+      { fornavn: 'Omar', koen: 'D' },
+      { fornavn: 'Emil', koen: 'D', hold: 'GF03' },
+    ]);
+  });
+
   it('finder holdet i tekst fra tekstgenkendelse', () => {
     const r = udtraekFraTekst('1c 1.GF02-DIG 52812 l26spa01 Ida Testesen K Spansk\n1c 1.GF01-DIG 53008 l26kia01 Malte Opdigt M Kinesisk');
     expect(r.elever.map((e) => [e.fornavn, e.hold])).toEqual([['Ida', 'GF02'], ['Malte', 'GF01']]);

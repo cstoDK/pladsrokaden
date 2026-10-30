@@ -142,6 +142,9 @@ export function udtraekFraLinjer(tekst: string): Udtraek {
   for (const raa of normaliser(tekst).split('\n')) {
     let l = raa.trim().replace(/^(\d+[.)]?|[-*•·])\s+/, '');
     if (!l) continue;
+    // GF-hold kan stå på linjen: "Ida P GF02" eller "Ida GF2 P".
+    const hold = normaliserHold(l);
+    l = l.replace(/[\s,;:\t]*\(?\d?\.?\s*G\s*F\s*-?\s*\d{1,2}(?:-[\p{L}]+)?\)?/giu, ' ').trim();
     let koen: Koen = null;
     const m = l.match(/^(.*?)[\s,;:\t]+\(?(p|d|pige|dreng)\)?$/i);
     if (m && m[1]!.trim()) {
@@ -156,11 +159,11 @@ export function udtraekFraLinjer(tekst: string): Udtraek {
     // "Ida H." og "Anne-Sofie" beholdes. "Ida Marie Hansen" bliver til "Ida" (+ H til dubletter).
     const sidste = ord[ord.length - 1]!;
     if (ord.length === 2 && FORBOGSTAV_ORD.test(sidste)) {
-      elever.push({ fornavn: `${paenStavning(ord[0]!)} ${sidste.toUpperCase()}`, koen });
+      elever.push({ fornavn: `${paenStavning(ord[0]!)} ${sidste.toUpperCase()}`, koen, ...(hold ? { hold } : {}) });
     } else if (ord.length >= 2) {
-      elever.push({ fornavn: paenStavning(ord[0]!), efternavnStart: start(sidste), koen });
+      elever.push({ fornavn: paenStavning(ord[0]!), efternavnStart: start(sidste), koen, ...(hold ? { hold } : {}) });
     } else {
-      elever.push({ fornavn: paenStavning(ord[0]!), koen });
+      elever.push({ fornavn: paenStavning(ord[0]!), koen, ...(hold ? { hold } : {}) });
     }
   }
   return { elever: elever.map(sikr), sprungetOver };
