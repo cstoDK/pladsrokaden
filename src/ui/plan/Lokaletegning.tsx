@@ -12,7 +12,6 @@ export interface Redigering {
   laaste: Set<ElevId>;
   onVaelg: (p: Plads) => void;
   onByt: (a: Plads, b: Plads) => void;
-  onSkiftLaas: (elevId: ElevId) => void;
 }
 
 interface Props {
@@ -25,6 +24,8 @@ interface Props {
   kunForm?: boolean;
   /** Ekstra klasse, fx til tavlevisning. */
   klasse?: string;
+  /** Skjult overskrift over bordene, så overskrifternes rækkefølge holder. */
+  overskrift?: string;
 }
 
 export function Lokaletegning(props: Props) {
@@ -47,7 +48,14 @@ export function Lokaletegning(props: Props) {
   }, [lokale]);
 
   return (
-    <div class={`lokale ${props.klasse ?? ''}`} ref={ramme}>
+    <div
+      class={`lokale ${props.klasse ?? ''}`}
+      ref={ramme}
+      role={rul && !props.klasse ? 'region' : undefined}
+      aria-label={rul && !props.klasse ? 'Lokalet (kan rulles til siden)' : undefined}
+      tabIndex={rul && !props.klasse ? 0 : undefined}
+    >
+      {props.overskrift && <h2 class="skjult">{props.overskrift}</h2>}
       {rul && <p class="hjaelp rul-hint">Stryg til siden for at se hele lokalet.</p>}
       <div class="tavle" aria-hidden="true">
         Tavle
@@ -62,7 +70,8 @@ export function Lokaletegning(props: Props) {
           const problemer = props.problemer?.[bord.id] ?? [];
           const titelId = `bord-${bord.id}`;
           return (
-            <section
+            <div
+              role="group"
               key={bord.id}
               class={`bord${forrest ? ' forrest' : ''}`}
               style={{ gridRow: String(bord.raekke + 1), gridColumn: String(bord.kolonne + 1) }}
@@ -124,17 +133,10 @@ export function Lokaletegning(props: Props) {
                       >
                         {navn || 'Tom'}
                       </button>
-                      {elevId && (
-                        <button
-                          type="button"
-                          class="laas-knap"
-                          aria-pressed={laast}
-                          aria-label={laast ? `Lås ${navn} op` : `Lås ${navn} fast på pladsen`}
-                          title={laast ? 'Låst. Tryk for at låse op' : 'Lås fast på pladsen'}
-                          onClick={() => r.onSkiftLaas(elevId)}
-                        >
-                          <LaasIkon laast={laast} />
-                        </button>
+                      {laast && (
+                        <span class="laas-ikon" title="Låst på pladsen">
+                          <LaasIkon laast />
+                        </span>
                       )}
                     </div>
                   );
@@ -149,7 +151,7 @@ export function Lokaletegning(props: Props) {
                   ))}
                 </ul>
               )}
-            </section>
+            </div>
           );
         })}
       </div>

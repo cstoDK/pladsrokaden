@@ -1,6 +1,29 @@
 // Små fælles komponenter.
 
+import { useEffect, useRef } from 'preact/hooks';
 import { lukBesked, useBeskeder } from '../app/tilstand';
+
+/**
+ * Flytter fokus til skærmens overskrift, når `noegle` skifter (fx nyt trin),
+ * så tastatur- og skærmlæserbrugere starter øverst på den nye skærm.
+ */
+export function useFokusPaaOverskrift(noegle: string) {
+  const foerste = useRef(true);
+  useEffect(() => {
+    // Ikke ved første visning: så starter tastaturet ved "Spring til indhold" som normalt.
+    if (foerste.current) {
+      foerste.current = false;
+      return;
+    }
+    const h1 = document.querySelector<HTMLElement>('main h1');
+    if (!h1 || document.activeElement === h1) return;
+    // Kun når fokus er gået tabt (fx fordi knappen, man trykkede på, forsvandt).
+    const aktiv = document.activeElement;
+    if (aktiv && aktiv !== document.body && document.contains(aktiv)) return;
+    h1.tabIndex = -1;
+    h1.focus();
+  }, [noegle]);
+}
 
 const TRIN = ['Elever', 'Lokale', 'Første plan'];
 

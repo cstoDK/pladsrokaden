@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { nyId, nyKlasse } from '../core/model';
 import { harLagerFejl, opdater, useData } from '../app/tilstand';
-import { Beskeder, Trinviser } from './Faelles';
+import { Beskeder, Trinviser, useFokusPaaOverskrift } from './Faelles';
 import { Import } from './import/Import';
 import { type KontrolRaekke } from './import/Kontrol';
 import { KlasseVisning } from './Klasse';
@@ -12,6 +12,8 @@ export function App() {
   const data = useData();
   const [nyKlasseAaben, setNyKlasseAaben] = useState(false);
   const aktiv = data.klasser.find((k) => k.id === data.aktivKlasseId) ?? data.klasser[0] ?? null;
+
+  useFokusPaaOverskrift(nyKlasseAaben ? 'ny' : aktiv ? `klasse-${aktiv.id}` : 'velkomst');
 
   let indhold;
   if (nyKlasseAaben) {
@@ -49,12 +51,12 @@ export function App() {
                   </option>
                 ))}
               </select>
-              <button class="knap" type="button" onClick={() => setNyKlasseAaben(true)}>
+              <button class="knap kun-bred" type="button" onClick={() => setNyKlasseAaben(true)}>
                 Ny klasse
               </button>
             </div>
           )}
-          <Menu harKlasser={data.klasser.length > 0} />
+          <Menu harKlasser={data.klasser.length > 0} onNyKlasse={() => setNyKlasseAaben(true)} />
         </div>
       </header>
       <main id="indhold" tabIndex={-1}>
@@ -66,6 +68,9 @@ export function App() {
         )}
         {indhold}
       </main>
+      <footer class="sidefod">
+        <p>Alt gemmes automatisk i denne browser. Intet sendes nogen steder hen.</p>
+      </footer>
       <Beskeder />
       <PrintArk />
     </>
@@ -155,7 +160,7 @@ function NyKlasse(props: { onFaerdig: () => void; kanAnnullere: boolean }) {
   );
 }
 
-function Menu(props: { harKlasser: boolean }) {
+function Menu(props: { harKlasser: boolean; onNyKlasse: () => void }) {
   const [aaben, setAaben] = useState(false);
   const rod = useRef<HTMLDivElement>(null);
   const knap = useRef<HTMLButtonElement>(null);
@@ -181,8 +186,8 @@ function Menu(props: { harKlasser: boolean }) {
     };
   }, [aaben]);
 
-  const punkt = (tekst: string, handling: () => void, fare = false) => (
-    <li>
+  const punkt = (tekst: string, handling: () => void, fare = false, klasse?: string) => (
+    <li class={klasse}>
       <button
         type="button"
         class={`knap knap-tekst${fare ? ' knap-fare' : ''}`}
@@ -216,6 +221,7 @@ function Menu(props: { harKlasser: boolean }) {
       />
       {aaben && (
         <ul class="menu-liste" id="hovedmenu">
+          {props.harKlasser && punkt('Ny klasse', props.onNyKlasse, false, 'kun-smal')}
           {props.harKlasser && punkt('Gem sikkerhedskopi', gemSikkerhedskopi)}
           {punkt('Hent sikkerhedskopi', () => fil.current?.click())}
           {punkt('Se demoklassen', aabnDemo)}

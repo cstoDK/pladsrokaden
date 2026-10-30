@@ -55,7 +55,7 @@ export function HistorikFane(props: { klasse: Klasse }) {
               {aaben === p.id && (
                 <div class="planliste-indhold">
                   <DelKnapper klasse={k} plan={p} />
-                  <Lokaletegning lokale={p.lokale} placering={p.placering} navn={navn} />
+                  <Lokaletegning lokale={p.lokale} placering={p.placering} navn={navn} overskrift={`Bordplan, ${planTitel(p.dato)}`} />
                 </div>
               )}
             </li>

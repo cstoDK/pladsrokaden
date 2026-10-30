@@ -6,7 +6,7 @@ import { type Klasse } from '../core/model';
 import { opdaterKlasse, visBesked } from '../app/tilstand';
 import { EleverFane } from './elever/EleverFane';
 import { HistorikFane } from './historik/HistorikFane';
-import { Trinviser } from './Faelles';
+import { Trinviser, useFokusPaaOverskrift } from './Faelles';
 import { LokaleEditor } from './lokale/LokaleEditor';
 import { PlanFane } from './plan/PlanFane';
 
@@ -28,6 +28,9 @@ export function KlasseVisning(props: { klasse: Klasse }) {
       setFane('plan');
     }
   }, [k.id]);
+
+  const trin = !k.lokale ? 'lokale' : k.planer.length === 0 ? 'foerste' : 'faner';
+  useFokusPaaOverskrift(`${k.id}|${trin}|${fane}|${k.planer.length}`);
 
   // Trin 2: lokalet
   if (!k.lokale) {
@@ -69,7 +72,16 @@ export function KlasseVisning(props: { klasse: Klasse }) {
           </button>
         ))}
       </nav>
-      {fane === 'plan' && <PlanFane key={k.id} klasse={k} onRetLokale={() => setFane('lokale')} />}
+      {fane === 'plan' && k.elever.length === 0 && (
+        <section class="kort smal">
+          <h1>{k.navn} har ingen elever endnu</h1>
+          <p>Start med at tilføje klassens elever. Så kan du lave en plan bagefter.</p>
+          <button class="knap knap-primaer knap-stor" type="button" onClick={() => setFane('elever')}>
+            Tilføj elever
+          </button>
+        </section>
+      )}
+      {fane === 'plan' && k.elever.length > 0 && <PlanFane key={k.id} klasse={k} onRetLokale={() => setFane('lokale')} />}
       {fane === 'elever' && <EleverFane key={k.id} klasse={k} />}
       {fane === 'historik' && <HistorikFane key={k.id} klasse={k} />}
       {fane === 'lokale' && (
