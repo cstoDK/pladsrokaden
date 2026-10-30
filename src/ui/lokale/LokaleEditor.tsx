@@ -10,7 +10,9 @@ import {
   type SkabelonId,
   foreslaaIndstillinger,
   lavLokale,
+  kanSaettesSammen,
   normaliserLokale,
+  saetSammenToOgTo,
   sugSammen,
   tilpasStoerrelse,
 } from '../../core/lokale';
@@ -350,6 +352,15 @@ function RumEditor(props: {
         Med tastaturet: vælg med Tab, og flyt med piletasterne.
       </div>
       <div class="vaerktoejer">
+        {kanSaettesSammen(l) && (
+          <button
+            class="knap"
+            type="button"
+            onClick={() => medKopi((k) => saetSammenToOgTo(k), 'Bordene står nu sammen to og to. Tryk Fortryd for at gå tilbage.')}
+          >
+            Sæt bordene sammen to og to
+          </button>
+        )}
         <button class="knap" type="button" onClick={tilfoejBord}>
           Tilføj bord
         </button>

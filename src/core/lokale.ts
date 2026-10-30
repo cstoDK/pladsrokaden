@@ -169,6 +169,51 @@ export function flytMobilskabFri(l: Lokale): void {
 }
 
 /**
+ * Stiller bordene i hver række sammen to og to (kant i kant), med en gang
+ * mellem parrene. Rækkerne og deres rækkefølge bevares. Lodrette borde
+ * og borde, der allerede står sammen, lades i fred.
+ */
+export function saetSammenToOgTo(l: Lokale): void {
+  const raekker = new Map<number, Bord[]>();
+  for (const b of l.borde) {
+    if (b.lodret) continue;
+    const k = Math.round(b.y * 2);
+    raekker.set(k, [...(raekker.get(k) ?? []), b]);
+  }
+  for (const raekke of raekker.values()) {
+    raekke.sort((a, b) => a.x - b.x);
+    const y = raekke[0]!.y;
+    let x = raekke[0]!.x;
+    for (let i = 0; i < raekke.length; i += 2) {
+      const a = raekke[i]!;
+      const b = raekke[i + 1];
+      a.x = x;
+      a.y = y;
+      x += bordBredde(a);
+      if (b) {
+        b.x = x;
+        b.y = y;
+        x += bordBredde(b);
+      }
+      x += 1;
+    }
+  }
+  tilpasStoerrelse(l);
+}
+
+/** Er der borde i samme række, som ikke står sammen to og to? */
+export function kanSaettesSammen(l: Lokale): boolean {
+  const vandrette = l.borde.filter((b) => !b.lodret);
+  const iRaekke = (b: Bord) => vandrette.filter((x) => Math.abs(x.y - b.y) < 0.25).length;
+  const raekker = new Map<number, number>();
+  for (const b of vandrette) if (iRaekke(b) >= 2) raekker.set(Math.round(b.y * 2), 1);
+  if (raekker.size === 0) return false;
+  const proeve = structuredClone(l);
+  saetSammenToOgTo(proeve);
+  return proeve.borde.some((b, i) => b.x !== l.borde[i]!.x || b.y !== l.borde[i]!.y);
+}
+
+/**
  * Trækkes et bord tæt på enden af et andet bord i samme retning, sættes
  * det kant i kant med det, så de to borde står sammen.
  */
@@ -223,6 +268,9 @@ export function fraV1(v1: LokaleV1, navn = ''): Lokale {
   const l: Lokale = { id: nyId(), navn, bredde: 0, hoejde: 0, borde, tavle: { vaeg: 'top', midte: 0, laengde: 6 }, mobilskab: null };
   tilpasStoerrelse(l);
   l.tavle.midte = l.bredde / 2;
+  // Alle klasselokaler har et mobilskab; det stilles bag det bageste bord.
+  l.mobilskab = { x: MARGIN, y: Math.max(0, ...borde.map((b) => b.y + bordHoejde(b))) + 0.6 };
+  tilpasStoerrelse(l);
   return l;
 }
 

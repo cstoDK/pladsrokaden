@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { flytMobilskabFri, fraDybeBorde, fjernTomPlads, sugSammen, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
+import { kanSaettesSammen, saetSammenToOgTo, flytMobilskabFri, fraDybeBorde, fjernTomPlads, sugSammen, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
 import { bordRaekker, forresteBorde, staarSammen } from './model';
 
 describe('lavLokale', () => {
@@ -27,6 +27,20 @@ describe('borde, der står sammen', () => {
     l.borde[1]!.lodret = true;
     expect(staarSammen(l.borde[0]!, l.borde[1]!)).toBe(false);
   });
+});
+
+it('"Sæt bordene sammen to og to" stiller hver række i par med en gang imellem', () => {
+  const l = lavLokale({ antalBorde: 6, pladserPrBord: 2, bordePrRaekke: 4 }); // med mellemrum
+  expect(kanSaettesSammen(l)).toBe(true);
+  saetSammenToOgTo(l);
+  expect(l.borde.map((b) => [b.x, b.y])).toEqual([[1, 1.5], [3, 1.5], [6, 1.5], [8, 1.5], [1, 2.8], [3, 2.8]]);
+  expect(bordRaekker(l).map((r) => r.length)).toEqual([2, 2, 2]);
+  expect(kanSaettesSammen(l)).toBe(false);
+});
+
+it('lokaler fra version 1 får et mobilskab', () => {
+  const l = fraV1({ borde: [{ id: 'a', raekke: 0, kolonne: 0, pladser: 2 }], forresteRaekker: 1 });
+  expect(l.mobilskab).not.toBeNull();
 });
 
 it('mobilskabet flyttes fri, hvis det står oven i et bord', () => {
