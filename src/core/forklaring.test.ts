@@ -35,7 +35,7 @@ describe('forklar', () => {
 
   it('melder elever alene ved et bord og brudt "hold adskilt" som fejl', () => {
     const f = forklar({ elever, lokale, placering: { B1: ['a', 'b', 'c', 'd'], B2: ['e', null, null, null] }, tidligere: [], holdAdskilt: [['a', 'b']] });
-    expect(f.status).toContainEqual({ niveau: 'fejl', tekst: '1 elev sidder alene ved et bord' });
+    expect(f.status).toContainEqual({ niveau: 'fejl', tekst: '1 elev sidder alene ved et bord', ret: 'lokale' });
     expect(f.status).toContainEqual({ niveau: 'fejl', tekst: '1 par, der skal holdes adskilt, sidder ved samme bord' });
     expect(f.borde['B2']![0]).toMatchObject({ niveau: 'fejl', tekst: 'Emil sidder alene ved bordet' });
   });

@@ -9,11 +9,13 @@ import { medFortryd, opdaterKlasse, visBesked } from '../../app/tilstand';
 import { Lokaletegning } from './Lokaletegning';
 import { useFokusPaaOverskrift } from '../Faelles';
 import { DelKnapper, GruppeOversigt } from './Deling';
-import { type BordProblem } from '../../core/forklaring';
+import { type BordProblem, type Statusmaerke } from '../../core/forklaring';
+import { type Fane } from '../../app/navigation';
 import { boerTageSikkerhedskopi, gemSikkerhedskopi } from '../../app/handlinger';
 import { hentData } from '../../app/tilstand';
 
-export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: boolean; onRetLokale: () => void }) {
+export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: boolean; onFane: (f: Fane) => void }) {
+  const onRetLokale = () => props.onFane('lokale');
   const k = props.klasse;
   const [redigerer, setRedigerer] = useState(props.foersteGang ?? false);
   const [fejl, setFejl] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: 
 
   if (redigerer && k.kladde) {
     return (
-      <KladdeEditor klasse={k} lokale={props.lokale} kladde={k.kladde} foersteGang={props.foersteGang} onLuk={() => setRedigerer(false)} onRetLokale={props.onRetLokale} />
+      <KladdeEditor klasse={k} lokale={props.lokale} kladde={k.kladde} foersteGang={props.foersteGang} onLuk={() => setRedigerer(false)} onRetLokale={onRetLokale} onFane={props.onFane} />
     );
   }
 
@@ -51,7 +53,7 @@ export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: 
     <div>
       <div class="planhoved">
         <h1>{plan ? planTitel(plan.dato) : 'Ingen plan endnu'}</h1>
-        <button class="knap knap-stor" type="button" onClick={props.onRetLokale}>
+        <button class="knap knap-stor" type="button" onClick={onRetLokale}>
           Flyt borde
         </button>
         <button class="knap knap-primaer knap-stor" type="button" onClick={nyPlan}>
@@ -61,7 +63,7 @@ export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: 
       {fejl && (
         <div class="meddelelse meddelelse-fejl" role="alert">
           {fejl}{' '}
-          <button class="knap knap-tekst" type="button" onClick={props.onRetLokale}>
+          <button class="knap knap-tekst" type="button" onClick={onRetLokale}>
             Ret lokalet
           </button>
         </div>
@@ -69,12 +71,12 @@ export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: 
       {k.kladde && (
         <p class="meddelelse meddelelse-bemaerk">Du har en kladde til en ny plan, som ikke er gemt endnu.</p>
       )}
-      {plan ? <GemtPlan klasse={k} /> : <p class="daempet">Tryk på "Lav ny plan" for at lave klassens første bordplan.</p>}
+      {plan ? <GemtPlan klasse={k} onFane={props.onFane} /> : <p class="daempet">Tryk på "Lav ny plan" for at lave klassens første bordplan.</p>}
     </div>
   );
 }
 
-function GemtPlan(props: { klasse: Klasse }) {
+function GemtPlan(props: { klasse: Klasse; onFane: (f: Fane) => void }) {
   const k = props.klasse;
   const plan = k.planer[k.planer.length - 1]!;
   const navn = useNavne(k);
@@ -104,7 +106,7 @@ function GemtPlan(props: { klasse: Klasse }) {
         </div>
       )}
       <DelKnapper klasse={k} plan={plan} />
-      <Statusliste status={f.status} />
+      <Statusliste status={f.status} onFane={props.onFane} />
       <Lokaletegning lokale={plan.lokale} placering={plan.placering} navn={navn} overskrift="Bordplan" />
       <Problemliste lokale={plan.lokale} problemer={f.borde} />
       <h2 class="mellemoverskrift">Netværksgrupper og makkerpar</h2>
@@ -120,13 +122,20 @@ function useNavne(k: Klasse) {
   }, [k.elever]);
 }
 
-export function Statusliste(props: { status: { niveau: string; tekst: string }[] }) {
+const RET_TEKST = { elever: 'Ret under Elever', lokale: 'Ret lokalet' } as const;
+
+export function Statusliste(props: { status: Statusmaerke[]; onFane?: (f: Fane) => void }) {
   if (props.status.length === 0) return null;
   return (
     <ul class="statusliste" aria-label="Status for planen">
       {props.status.map((s) => (
         <li key={s.tekst} class={s.niveau}>
           {s.tekst}
+          {s.ret && props.onFane && (
+            <button class="status-ret" type="button" onClick={() => props.onFane!(s.ret!)}>
+              {RET_TEKST[s.ret]}
+            </button>
+          )}
         </li>
       ))}
     </ul>
@@ -135,7 +144,7 @@ export function Statusliste(props: { status: { niveau: string; tekst: string }[]
 
 // ----------------------------------------------------------------------
 
-function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; foersteGang?: boolean; onLuk: () => void; onRetLokale: () => void }) {
+function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; foersteGang?: boolean; onLuk: () => void; onRetLokale: () => void; onFane: (f: Fane) => void }) {
   const k = props.klasse;
   const kladde = props.kladde;
   const [valgt, setValgt] = useState<Plads | null>(null);
@@ -328,7 +337,7 @@ function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; f
         </button>
       </div>
 
-      <Statusliste status={f.status} />
+      <Statusliste status={f.status} onFane={props.onFane} />
       {valgt && valgtNavn && valgtId && (
         <div class="valgt-bar">
           <span>

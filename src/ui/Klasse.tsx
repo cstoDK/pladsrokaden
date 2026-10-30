@@ -1,16 +1,16 @@
-// Klassens skærm. Første gang guides læreren gennem tre trin; derefter
-// åbner klassen på den gældende plan med fanerne Plan, Elever og Lokale.
+// Klassens skærm. Fanerne Plan, Elever, Lokale og Historik er altid
+// synlige, så man frit kan gå frem og tilbage. Mens klassen sættes op,
+// viser trinene (Elever, Lokale, Første plan), hvor langt man er.
 
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { type Fane, gaaTil, tilHash } from '../app/navigation';
+import { useData, visBesked } from '../app/tilstand';
 import { type Klasse, findLokale } from '../core/model';
-import { opdaterKlasse, useData, visBesked } from '../app/tilstand';
 import { EleverFane } from './elever/EleverFane';
-import { HistorikFane } from './historik/HistorikFane';
 import { Trinviser, useFokusPaaOverskrift } from './Faelles';
+import { HistorikFane } from './historik/HistorikFane';
 import { LokaleSkaerm } from './lokale/LokaleEditor';
 import { PlanFane } from './plan/PlanFane';
 
-type Fane = 'plan' | 'elever' | 'lokale' | 'historik';
 const FANER: { id: Fane; navn: string }[] = [
   { id: 'plan', navn: 'Plan' },
   { id: 'elever', navn: 'Elever' },
@@ -18,42 +18,16 @@ const FANER: { id: Fane; navn: string }[] = [
   { id: 'historik', navn: 'Historik' },
 ];
 
-export function KlasseVisning(props: { klasse: Klasse }) {
+export function KlasseVisning(props: { klasse: Klasse; fane: Fane | null }) {
   const k = props.klasse;
   const lokale = findLokale(useData(), k);
-  const [fane, setFane] = useState<Fane>('plan');
-  const forrigeKlasse = useRef(k.id);
-  useEffect(() => {
-    if (forrigeKlasse.current !== k.id) {
-      forrigeKlasse.current = k.id;
-      setFane('plan');
-    }
-  }, [k.id]);
+  const opsaetning = !lokale || k.planer.length === 0;
+  // Uden valgt fane: næste skridt i opsætningen, ellers planen.
+  const fane: Fane = props.fane ?? (!lokale ? 'lokale' : 'plan');
+  const til = (f: Fane) => tilHash({ side: 'klasse', id: k.id, fane: f });
+  const gaa = (f: Fane) => gaaTil({ side: 'klasse', id: k.id, fane: f });
 
-  const trin = !lokale ? 'lokale' : k.planer.length === 0 ? 'foerste' : 'faner';
-  useFokusPaaOverskrift(`${k.id}|${trin}|${fane}|${k.planer.length}`);
-
-  // Trin 2: lokalet
-  if (!lokale) {
-    return (
-      <div>
-        <Trinviser aktuelt={2} />
-        <h1>Lokalet for {k.navn}</h1>
-        <p class="daempet">Vælg lokalet, eller byg det. Lokalet huskes, så det kan genbruges af dine andre klasser.</p>
-        <LokaleSkaerm klasse={k} gemTekst="Gem lokale og lav første plan" onGemt={() => undefined} />
-      </div>
-    );
-  }
-
-  // Trin 3: første plan
-  if (k.planer.length === 0) {
-    return (
-      <div>
-        <Trinviser aktuelt={3} />
-        <PlanFane klasse={k} lokale={lokale} foersteGang onRetLokale={() => opdaterKlasse(k.id, (x) => void (x.lokaleId = null))} />
-      </div>
-    );
-  }
+  useFokusPaaOverskrift(`${k.id}|${fane}|${!!lokale}|${k.planer.length}`);
 
   return (
     <div>
@@ -62,39 +36,74 @@ export function KlasseVisning(props: { klasse: Klasse }) {
           Eleverne i demoklassen er opdigtede. Prøv at lave en ny plan og flytte rundt. Du kan slette klassen under Elever.
         </p>
       )}
+      {opsaetning && (
+        <Trinviser
+          trin={[
+            { navn: 'Elever', faerdig: k.elever.length > 0, aktuelt: fane === 'elever', href: til('elever') },
+            { navn: 'Lokale', faerdig: !!lokale, aktuelt: fane === 'lokale', href: til('lokale') },
+            { navn: 'Første plan', faerdig: k.planer.length > 0, aktuelt: fane === 'plan', href: til('plan') },
+          ]}
+        />
+      )}
       <nav class="faner" aria-label={`Klasse ${k.navn}`}>
         {FANER.map((f) => (
-          <button key={f.id} type="button" class="fane" aria-current={fane === f.id ? 'page' : undefined} onClick={() => setFane(f.id)}>
+          <a key={f.id} class="fane" href={til(f.id)} aria-current={fane === f.id ? 'page' : undefined}>
             {f.navn}
-          </button>
+          </a>
         ))}
       </nav>
-      {fane === 'plan' && k.elever.length === 0 && (
-        <section class="kort smal">
-          <h1>{k.navn} har ingen elever endnu</h1>
-          <p>Start med at tilføje klassens elever. Så kan du lave en plan bagefter.</p>
-          <button class="knap knap-primaer knap-stor" type="button" onClick={() => setFane('elever')}>
-            Tilføj elever
-          </button>
-        </section>
+
+      {fane === 'plan' &&
+        (k.elever.length === 0 ? (
+          <section class="kort smal">
+            <h1>{k.navn} har ingen elever endnu</h1>
+            <p>Start med at tilføje klassens elever. Så kan du lave en plan bagefter.</p>
+            <a class="knap knap-primaer knap-stor" href={til('elever')}>
+              Tilføj elever
+            </a>
+          </section>
+        ) : !lokale ? (
+          <section class="kort smal">
+            <h1>Vælg først lokalet</h1>
+            <p>Planen laves ud fra, hvordan bordene står i lokalet.</p>
+            <a class="knap knap-primaer knap-stor" href={til('lokale')}>
+              Vælg lokale
+            </a>
+          </section>
+        ) : (
+          <PlanFane key={k.id} klasse={k} lokale={lokale} foersteGang={k.planer.length === 0} onFane={gaa} />
+        ))}
+
+      {fane === 'elever' && (
+        <>
+          <EleverFane key={k.id} klasse={k} lokale={lokale} />
+          {opsaetning && (
+            <div class="smal videre">
+              <a class="knap knap-primaer knap-stor" href={til(lokale ? 'plan' : 'lokale')}>
+                {lokale ? 'Videre til første plan' : 'Videre til lokalet'}
+              </a>
+            </div>
+          )}
+        </>
       )}
-      {fane === 'plan' && k.elever.length > 0 && <PlanFane key={k.id} klasse={k} lokale={lokale} onRetLokale={() => setFane('lokale')} />}
-      {fane === 'elever' && <EleverFane key={k.id} klasse={k} lokale={lokale} />}
-      {fane === 'historik' && <HistorikFane key={k.id} klasse={k} />}
+
       {fane === 'lokale' && (
         <div>
           <h1>Lokalet for {k.navn}</h1>
+          {opsaetning && <p class="daempet">Vælg lokalet, eller byg det. Lokalet huskes, så det kan genbruges af dine andre klasser.</p>}
           <LokaleSkaerm
             key={k.id}
             klasse={k}
-            gemTekst="Gem lokale"
+            gemTekst={k.planer.length === 0 ? 'Gem lokale og lav første plan' : 'Gem lokale'}
             onGemt={() => {
-              visBesked('Lokalet er gemt. Det bruges fra næste plan.');
-              setFane('plan');
+              if (k.planer.length > 0) visBesked('Lokalet er gemt. Det bruges fra næste plan.');
+              gaa('plan');
             }}
           />
         </div>
       )}
+
+      {fane === 'historik' && <HistorikFane key={k.id} klasse={k} />}
     </div>
   );
 }

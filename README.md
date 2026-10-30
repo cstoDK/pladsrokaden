@@ -10,7 +10,7 @@ Appen er en ren statisk side. Alt kører i browseren, og elevdata forlader aldri
 2. **Lokale:** vælg lokalet efter nummer (fx 205), eller byg et nyt ud fra en opstilling (lange rækker, borde à 4, borde à 2). Træk borde, tavle og mobilskab på plads. Lokalet huskes og kan bruges af alle dine klasser.
 3. **Første plan:** forslaget laves med det samme, inddelt i netværksgrupper og makkerpar. Byt elever ved at trykke på to, eller træk dem. Tryk "Gem plan".
 
-Derefter åbner appen på den gældende plan med "Lav ny plan". Planen kan udskrives (to A4-sider: siddepladser og grupper), kopieres som tekst eller vises på tavlen.
+Derefter åbner appen på den gældende plan med "Lav ny plan". Man kan altid gå frem og tilbage: fanerne Plan, Elever, Lokale og Historik er altid synlige, trinene kan klikkes, browserens tilbage-knap virker, og et klik på "Pladsrokaden" fører til startsiden med alle klasser. Planen kan udskrives (to A4-sider: siddepladser og grupper), kopieres som tekst eller vises på tavlen.
 
 ### Netværksgrupper og makkerpar
 

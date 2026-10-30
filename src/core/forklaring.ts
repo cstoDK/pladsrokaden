@@ -10,6 +10,8 @@ export type Niveau = 'ok' | 'bemaerk' | 'fejl';
 export interface Statusmaerke {
   niveau: Niveau;
   tekst: string;
+  /** Hvor læreren kan rette det, hvis det kan rettes. */
+  ret?: 'elever' | 'lokale';
 }
 
 export interface BordProblem {
@@ -124,7 +126,7 @@ export function forklar(input: ForklaringsInput): Forklaring {
 
   const status: Statusmaerke[] = [];
   if (ensomme > 0) {
-    status.push({ niveau: 'fejl', tekst: `${ensomme} ${ensomme === 1 ? 'elev sidder' : 'elever sidder'} alene ved et bord` });
+    status.push({ niveau: 'fejl', tekst: `${ensomme} ${ensomme === 1 ? 'elev sidder' : 'elever sidder'} alene ved et bord`, ret: 'lokale' });
   }
   if (harHistorik) {
     if (makkerIgen === 0 && makkerFoer === 0) status.push({ niveau: 'ok', tekst: 'Alle har en ny makker' });
@@ -152,7 +154,7 @@ export function forklar(input: ForklaringsInput): Forklaring {
   }
   const udenKoen = elever.filter((e) => e.koen === null).length;
   if (udenKoen > 0) {
-    status.push({ niveau: 'bemaerk', tekst: `${antal(udenKoen, 'elev', 'elever')} mangler køn og tæller ikke med i kønsfordelingen` });
+    status.push({ niveau: 'bemaerk', tekst: `${antal(udenKoen, 'elev', 'elever')} mangler køn og tæller ikke med i kønsfordelingen`, ret: 'elever' });
   }
   if (input.holdAdskilt.length > 0) {
     status.push(

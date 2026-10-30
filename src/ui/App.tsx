@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { nyId, nyKlasse } from '../core/model';
+import { planTitel } from '../core/dato';
+import { findLokale, nyId, nyKlasse } from '../core/model';
+import { type Rute, gaaTil, tilHash, useRute } from '../app/navigation';
 import { harLagerFejl, opdater, useData } from '../app/tilstand';
 import { Beskeder, Trinviser, useFokusPaaOverskrift } from './Faelles';
 import { Import } from './import/Import';
@@ -11,26 +13,27 @@ import { aabnDemo, gemSikkerhedskopi, hentSikkerhedskopi, sletAlt } from '../app
 
 export function App() {
   const data = useData();
-  const [nyKlasseAaben, setNyKlasseAaben] = useState(false);
-  const [dataAaben, setDataAaben] = useState(false);
-  const visData = () => {
-    setDataAaben(true);
-    window.scrollTo(0, 0);
-  };
+  const rute = useRute();
   const aktiv = data.klasser.find((k) => k.id === data.aktivKlasseId) ?? data.klasser[0] ?? null;
 
-  useFokusPaaOverskrift(dataAaben ? 'data' : nyKlasseAaben ? 'ny' : aktiv ? `klasse-${aktiv.id}` : 'velkomst');
+  // Uden adresse åbnes den senest brugte klasse; ellers startsiden.
+  let r: Rute = rute ?? (aktiv ? { side: 'klasse', id: aktiv.id, fane: null } : { side: 'start' });
+  const klasseId = r.side === 'klasse' ? r.id : null;
+  const klasse = klasseId ? data.klasser.find((k) => k.id === klasseId) ?? null : null;
+  if (r.side === 'klasse' && !klasse) r = { side: 'start' };
+
+  // Husk den åbne klasse, så appen åbner den næste gang.
+  useEffect(() => {
+    if (klasse && data.aktivKlasseId !== klasse.id) opdater((d) => void (d.aktivKlasseId = klasse.id));
+  }, [klasse?.id]);
+
+  useFokusPaaOverskrift(r.side === 'klasse' ? `klasse-${r.id}` : r.side);
 
   let indhold;
-  if (dataAaben) {
-    indhold = <DataSide onTilbage={() => setDataAaben(false)} />;
-  } else if (nyKlasseAaben) {
-    indhold = <NyKlasse onFaerdig={() => setNyKlasseAaben(false)} kanAnnullere={data.klasser.length > 0} />;
-  } else if (!aktiv) {
-    indhold = <Velkomst onStart={() => setNyKlasseAaben(true)} onData={visData} />;
-  } else {
-    indhold = <KlasseVisning klasse={aktiv} />;
-  }
+  if (r.side === 'data') indhold = <DataSide onTilbage={() => history.back()} />;
+  else if (r.side === 'ny') indhold = <NyKlasse kanAnnullere={data.klasser.length > 0} />;
+  else if (r.side === 'klasse' && klasse) indhold = <KlasseVisning klasse={klasse} fane={r.fane} />;
+  else indhold = data.klasser.length === 0 ? <Velkomst /> : <Startside />;
 
   return (
     <>
@@ -39,33 +42,35 @@ export function App() {
       </a>
       <header class="topbjaelke">
         <div class="topbjaelke-indre">
-          <span class="logo">Pladsrokaden</span>
-          {data.klasser.length > 0 && !nyKlasseAaben && !dataAaben && (
+          <a class="logo" href="#/start" aria-label="Pladsrokaden, gå til startsiden">
+            Pladsrokaden
+          </a>
+          {data.klasser.length > 0 && (
             <div class="klassevaelger">
               <label for="klassevalg" class="skjult">
                 Klasse
               </label>
               <select
                 id="klassevalg"
-                value={aktiv?.id}
+                value={klasse?.id ?? ''}
                 onChange={(e) => {
                   const id = e.currentTarget.value;
-                  setDataAaben(false);
-                  opdater((d) => void (d.aktivKlasseId = id));
+                  if (id) gaaTil({ side: 'klasse', id, fane: null });
                 }}
               >
+                {!klasse && <option value="">Vælg klasse</option>}
                 {data.klasser.map((k) => (
                   <option key={k.id} value={k.id}>
                     {k.navn}
                   </option>
                 ))}
               </select>
-              <button class="knap kun-bred" type="button" onClick={() => setNyKlasseAaben(true)}>
+              <a class="knap kun-bred" href="#/ny">
                 Ny klasse
-              </button>
+              </a>
             </div>
           )}
-          <Menu harKlasser={data.klasser.length > 0} onNyKlasse={() => { setDataAaben(false); setNyKlasseAaben(true); }} onData={visData} />
+          <Menu harKlasser={data.klasser.length > 0} />
         </div>
       </header>
       <main id="indhold" tabIndex={-1}>
@@ -79,10 +84,7 @@ export function App() {
       </main>
       <footer class="sidefod">
         <p>
-          Alt gemmes automatisk i denne browser. Intet sendes nogen steder hen.{' '}
-          <button class="knap-link" type="button" onClick={visData}>
-            Sådan håndteres data
-          </button>
+          Alt gemmes automatisk i denne browser. Intet sendes nogen steder hen. <a href="#/data">Sådan håndteres data</a>
         </p>
       </footer>
       <Beskeder />
@@ -91,7 +93,40 @@ export function App() {
   );
 }
 
-function Velkomst(props: { onStart: () => void; onData: () => void }) {
+/** Startsiden: dine klasser, og hvor langt hver er nået. */
+function Startside() {
+  const data = useData();
+  return (
+    <section class="smal">
+      <h1>Dine klasser</h1>
+      <ul class="klasseliste">
+        {data.klasser.map((k) => {
+          const lokale = findLokale(data, k);
+          const plan = k.planer[k.planer.length - 1];
+          const status = !lokale ? 'Mangler lokale' : plan ? `Gældende plan: ${planTitel(plan.dato)}` : 'Mangler første plan';
+          return (
+            <li key={k.id}>
+              <a class="klassekort" href={tilHash({ side: 'klasse', id: k.id, fane: null })}>
+                <strong>{k.navn}</strong>
+                <span class="daempet">
+                  {k.elever.length} elever{lokale?.navn ? `, lokale ${lokale.navn}` : ''}
+                </span>
+                <span class={plan ? 'daempet' : 'bemaerk-tekst'}>{status}</span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+      <div class="raekke">
+        <a class="knap knap-primaer knap-stor" href="#/ny">
+          Opret ny klasse
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function Velkomst() {
   return (
     <section class="smal">
       <h1>Bordplaner, der skifter retfærdigt</h1>
@@ -103,15 +138,20 @@ function Velkomst(props: { onStart: () => void; onData: () => void }) {
       </ul>
       <p>
         Alt bliver på din egen computer. Intet sendes nogen steder hen.{' '}
-        <button class="knap-link" type="button" onClick={props.onData}>
-          Sådan håndteres data
-        </button>
+        <a href="#/data">Sådan håndteres data</a>
       </p>
       <div class="raekke">
-        <button class="knap knap-primaer knap-stor" type="button" onClick={props.onStart}>
+        <a class="knap knap-primaer knap-stor" href="#/ny">
           Opret din første klasse
-        </button>
-        <button class="knap knap-stor" type="button" onClick={() => aabnDemo()}>
+        </a>
+        <button
+          class="knap knap-stor"
+          type="button"
+          onClick={() => {
+            const id = aabnDemo();
+            gaaTil({ side: 'klasse', id, fane: null });
+          }}
+        >
           Se en demoklasse
         </button>
       </div>
@@ -122,7 +162,7 @@ function Velkomst(props: { onStart: () => void; onData: () => void }) {
   );
 }
 
-function NyKlasse(props: { onFaerdig: () => void; kanAnnullere: boolean }) {
+function NyKlasse(props: { kanAnnullere: boolean }) {
   const [navn, setNavn] = useState('');
   const [navnFejl, setNavnFejl] = useState<string | null>(null);
 
@@ -135,12 +175,19 @@ function NyKlasse(props: { onFaerdig: () => void; kanAnnullere: boolean }) {
       d.klasser.push(klasse);
       d.aktivKlasseId = klasse.id;
     });
-    props.onFaerdig();
+    // Erstat "ny klasse" i historikken, så Tilbage ikke opretter klassen igen.
+    gaaTil({ side: 'klasse', id: klasse.id, fane: 'lokale' }, true);
   }
 
   return (
     <div class="smal">
-      <Trinviser aktuelt={1} />
+      <Trinviser
+        trin={[
+          { navn: 'Elever', faerdig: false, aktuelt: true },
+          { navn: 'Lokale', faerdig: false, aktuelt: false },
+          { navn: 'Første plan', faerdig: false, aktuelt: false },
+        ]}
+      />
       <h1>Ny klasse</h1>
       <div class="kort">
         <label for="klassenavn">Hvad hedder klassen?</label>
@@ -173,13 +220,13 @@ function NyKlasse(props: { onFaerdig: () => void; kanAnnullere: boolean }) {
           return false;
         }}
         onGem={gem}
-        onAnnuller={props.kanAnnullere ? props.onFaerdig : undefined}
+        onAnnuller={props.kanAnnullere ? () => history.back() : undefined}
       />
     </div>
   );
 }
 
-function Menu(props: { harKlasser: boolean; onNyKlasse: () => void; onData: () => void }) {
+function Menu(props: { harKlasser: boolean }) {
   const [aaben, setAaben] = useState(false);
   const rod = useRef<HTMLDivElement>(null);
   const knap = useRef<HTMLButtonElement>(null);
@@ -240,11 +287,12 @@ function Menu(props: { harKlasser: boolean; onNyKlasse: () => void; onData: () =
       />
       {aaben && (
         <ul class="menu-liste" id="hovedmenu">
-          {props.harKlasser && punkt('Ny klasse', props.onNyKlasse, false, 'kun-smal')}
+          {punkt('Startside', () => gaaTil({ side: 'start' }))}
+          {props.harKlasser && punkt('Ny klasse', () => gaaTil({ side: 'ny' }), false, 'kun-smal')}
           {props.harKlasser && punkt('Gem sikkerhedskopi', gemSikkerhedskopi)}
           {punkt('Hent sikkerhedskopi', () => fil.current?.click())}
-          {punkt('Se demoklassen', aabnDemo)}
-          {punkt('Sådan håndteres data', props.onData)}
+          {punkt('Se demoklassen', () => gaaTil({ side: 'klasse', id: aabnDemo(), fane: null }))}
+          {punkt('Sådan håndteres data', () => gaaTil({ side: 'data' }))}
           {props.harKlasser && (
             <>
               <li>

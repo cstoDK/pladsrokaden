@@ -25,18 +25,28 @@ export function useFokusPaaOverskrift(noegle: string) {
   }, [noegle]);
 }
 
-const TRIN = ['Elever', 'Lokale', 'Første plan'];
+export interface Trin {
+  navn: string;
+  faerdig: boolean;
+  aktuelt: boolean;
+  /** Udeladt: trinnet kan ikke vælges (fx "Elever" på skærmen "Ny klasse"). */
+  href?: string;
+}
 
-export function Trinviser(props: { aktuelt: 1 | 2 | 3 }) {
+/** Trinene i opsætningen. Trinene er links, så man kan gå frem og tilbage. */
+export function Trinviser(props: { trin: Trin[] }) {
   return (
     <ol class="trin" aria-label="Kom i gang">
-      {TRIN.map((t, i) => {
-        const nr = i + 1;
-        const status = nr < props.aktuelt ? 'faerdig' : '';
+      {props.trin.map((t) => {
+        const tekst = (
+          <>
+            {t.navn}
+            {t.faerdig && <span class="skjult"> (færdig)</span>}
+          </>
+        );
         return (
-          <li key={t} class={status} aria-current={nr === props.aktuelt ? 'step' : undefined}>
-            {t}
-            {nr < props.aktuelt && <span class="skjult"> (færdig)</span>}
+          <li key={t.navn} class={t.faerdig ? 'faerdig' : ''} aria-current={t.aktuelt ? 'step' : undefined}>
+            {t.href && !t.aktuelt ? <a href={t.href}>{tekst}</a> : tekst}
           </li>
         );
       })}

@@ -36,11 +36,12 @@ export async function hentSikkerhedskopi(fil: File): Promise<void> {
   });
 }
 
-export function aabnDemo(): void {
+/** Åbner demoklassen (laver den, hvis den ikke findes) og returnerer dens id. */
+export function aabnDemo(): string {
   const findes = hentData().klasser.find((k) => k.erDemo);
   if (findes) {
     opdater((d) => void (d.aktivKlasseId = findes.id));
-    return;
+    return findes.id;
   }
   const { klasse, lokale } = lavDemo();
   opdater((d) => {
@@ -48,6 +49,7 @@ export function aabnDemo(): void {
     d.klasser.push(klasse);
     d.aktivKlasseId = klasse.id;
   });
+  return klasse.id;
 }
 
 export function sletAlt(): void {
