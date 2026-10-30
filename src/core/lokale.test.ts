@@ -1,45 +1,70 @@
 import { describe, expect, it } from 'vitest';
-import { antalRaekker, foreslaaIndstillinger, indstillingerFraLokale, jaevnFordeling, lavLokale } from './lokale';
-import { antalPladser, erForrest } from './model';
+import { fjernTomPlads, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
+import { forresteBorde } from './model';
 
 describe('lavLokale', () => {
-  it('lægger borde i rækker med række 0 nærmest tavlen', () => {
-    const l = lavLokale({ antalBorde: 7, pladserPrBord: 4, bordePrRaekke: 3, forresteRaekker: 1 });
-    expect(l.borde.map((b) => [b.raekke, b.kolonne])).toEqual([[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0]]);
-    expect(antalRaekker(l)).toBe(3);
-    expect(antalPladser(l)).toBe(28);
-    expect(l.borde.filter((b) => erForrest(b, l))).toHaveLength(3);
-  });
-
-  it('begrænser urimelige værdier', () => {
-    const l = lavLokale({ antalBorde: 3, pladserPrBord: 0, bordePrRaekke: 10, forresteRaekker: 9 });
-    expect(l.borde.every((b) => b.pladser === 1)).toBe(true);
-    expect(l.forresteRaekker).toBe(1);
-  });
-
-  it('kan læse sine indstillinger tilbage', () => {
-    const ind = { antalBorde: 10, pladserPrBord: 2, bordePrRaekke: 4, forresteRaekker: 2 };
-    expect(indstillingerFraLokale(lavLokale(ind))).toEqual(ind);
+  it('lægger borde i rækker med tavlen øverst og et mobilskab', () => {
+    const l = lavLokale({ antalBorde: 5, pladserPrBord: 4, bordePrRaekke: 3 }, '007');
+    expect(l.navn).toBe('007');
+    expect(l.borde.map((b) => [b.x, b.y])).toEqual([[1, 2], [6, 2], [11, 2], [1, 4], [6, 4]]);
+    expect(l.tavle.vaeg).toBe('top');
+    expect(l.mobilskab).not.toBeNull();
+    expect(l.bredde).toBeGreaterThanOrEqual(16);
   });
 });
 
-describe('foreslaaIndstillinger', () => {
-  it('foreslår nok borde til klassen', () => {
-    expect(foreslaaIndstillinger('par', 27)).toMatchObject({ antalBorde: 14, pladserPrBord: 2 });
-    expect(foreslaaIndstillinger('gruppe4', 30)).toMatchObject({ antalBorde: 8, pladserPrBord: 4 });
-    expect(foreslaaIndstillinger('gruppe5', 0)).toMatchObject({ antalBorde: 1 });
+describe('forresteBorde', () => {
+  it('er de borde, der står nærmest tavlen', () => {
+    const l = lavLokale({ antalBorde: 6, pladserPrBord: 4, bordePrRaekke: 3 });
+    const f = forresteBorde(l);
+    expect(l.borde.map((b) => f.has(b.id))).toEqual([true, true, true, false, false, false]);
+    l.tavle.vaeg = 'bund';
+    const g = forresteBorde(l);
+    expect(l.borde.map((b) => g.has(b.id))).toEqual([false, false, false, true, true, true]);
+  });
+  it('kan sættes af læreren', () => {
+    const l = lavLokale({ antalBorde: 4, pladserPrBord: 4, bordePrRaekke: 2 });
+    l.borde[3]!.forrest = true;
+    l.borde[0]!.forrest = false;
+    const f = forresteBorde(l);
+    expect(l.borde.map((b) => f.has(b.id))).toEqual([false, true, false, true]);
   });
 });
 
-describe('jaevnFordeling', () => {
-  it('giver højst én elev i forskel', () => {
-    expect(jaevnFordeling([4, 4, 4, 4, 4, 4, 4], 25)).toEqual([4, 4, 4, 4, 3, 3, 3]);
-    expect(jaevnFordeling([2, 2, 2], 3)).toEqual([1, 1, 1]);
+describe('størrelse og rækkefølge', () => {
+  it('lokalet vokser med indholdet', () => {
+    const l = lavLokale({ antalBorde: 1, pladserPrBord: 4, bordePrRaekke: 1 });
+    l.borde[0]!.x = 20;
+    tilpasStoerrelse(l);
+    expect(l.bredde).toBe(25);
   });
-  it('respekterer borde af forskellig størrelse', () => {
-    expect(jaevnFordeling([2, 6, 6], 12)).toEqual([2, 5, 5]);
+  it('bordene nummereres forfra set fra tavlen', () => {
+    const l = lavLokale({ antalBorde: 4, pladserPrBord: 2, bordePrRaekke: 2 });
+    const [a, b, c, d] = l.borde.map((x) => x.id);
+    l.tavle.vaeg = 'bund';
+    sorterBorde(l);
+    expect(l.borde.map((x) => x.id)).toEqual([c, d, a, b]);
+    expect(normaliserLokale(l)).not.toBe(l);
   });
-  it('fylder aldrig mere end pladserne', () => {
-    expect(jaevnFordeling([2, 2], 9)).toEqual([2, 2]);
+  it('fjerner tom plads ved den væg, tavlen er flyttet fra', () => {
+    const l = lavLokale({ antalBorde: 2, pladserPrBord: 4, bordePrRaekke: 2 });
+    l.tavle.vaeg = 'bund';
+    l.mobilskab = null;
+    fjernTomPlads(l);
+    expect(l.borde.map((b) => [b.x, b.y])).toEqual([[1, 1], [6, 1]]);
+    expect(l.hoejde).toBe(6.5); // mindst 6, plus luft ved tavlen
+  });
+  it('foreslår opstillinger ud fra klassens størrelse', () => {
+    expect(foreslaaIndstillinger('raekker', 31)).toEqual({ antalBorde: 3, pladserPrBord: 11, bordePrRaekke: 1 });
+    expect(foreslaaIndstillinger('fire', 31)).toEqual({ antalBorde: 8, pladserPrBord: 4, bordePrRaekke: 3 });
+    expect(foreslaaIndstillinger('par', 9)).toMatchObject({ antalBorde: 5, pladserPrBord: 2 });
+  });
+});
+
+describe('fraV1', () => {
+  it('bevarer bordenes id og pladser og omsætter rækker til positioner', () => {
+    const l = fraV1({ borde: [{ id: 'a', raekke: 0, kolonne: 0, pladser: 2 }, { id: 'b', raekke: 1, kolonne: 1, pladser: 2 }], forresteRaekker: 1 });
+    expect(l.borde.map((b) => [b.id, b.x, b.y, b.pladser])).toEqual([['a', 1, 2, 2], ['b', 4, 4, 2]]);
+    expect([...forresteBorde(l)]).toEqual(['a']);
   });
 });

@@ -2,12 +2,12 @@
 // åbner klassen på den gældende plan med fanerne Plan, Elever og Lokale.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { type Klasse } from '../core/model';
-import { opdaterKlasse, visBesked } from '../app/tilstand';
+import { type Klasse, findLokale } from '../core/model';
+import { opdaterKlasse, useData, visBesked } from '../app/tilstand';
 import { EleverFane } from './elever/EleverFane';
 import { HistorikFane } from './historik/HistorikFane';
 import { Trinviser, useFokusPaaOverskrift } from './Faelles';
-import { LokaleEditor } from './lokale/LokaleEditor';
+import { LokaleSkaerm } from './lokale/LokaleEditor';
 import { PlanFane } from './plan/PlanFane';
 
 type Fane = 'plan' | 'elever' | 'lokale' | 'historik';
@@ -20,6 +20,7 @@ const FANER: { id: Fane; navn: string }[] = [
 
 export function KlasseVisning(props: { klasse: Klasse }) {
   const k = props.klasse;
+  const lokale = findLokale(useData(), k);
   const [fane, setFane] = useState<Fane>('plan');
   const forrigeKlasse = useRef(k.id);
   useEffect(() => {
@@ -29,21 +30,17 @@ export function KlasseVisning(props: { klasse: Klasse }) {
     }
   }, [k.id]);
 
-  const trin = !k.lokale ? 'lokale' : k.planer.length === 0 ? 'foerste' : 'faner';
+  const trin = !lokale ? 'lokale' : k.planer.length === 0 ? 'foerste' : 'faner';
   useFokusPaaOverskrift(`${k.id}|${trin}|${fane}|${k.planer.length}`);
 
   // Trin 2: lokalet
-  if (!k.lokale) {
+  if (!lokale) {
     return (
       <div>
         <Trinviser aktuelt={2} />
         <h1>Lokalet for {k.navn}</h1>
-        <p class="daempet">Vælg den opstilling, der ligner jeres lokale mest. Du kan altid ændre den senere.</p>
-        <LokaleEditor
-          klasse={k}
-          gemTekst="Gem lokale og lav første plan"
-          onGem={(lokale) => opdaterKlasse(k.id, (x) => void (x.lokale = lokale))}
-        />
+        <p class="daempet">Vælg lokalet, eller byg det. Lokalet huskes, så det kan genbruges af dine andre klasser.</p>
+        <LokaleSkaerm klasse={k} gemTekst="Gem lokale og lav første plan" onGemt={() => undefined} />
       </div>
     );
   }
@@ -53,7 +50,7 @@ export function KlasseVisning(props: { klasse: Klasse }) {
     return (
       <div>
         <Trinviser aktuelt={3} />
-        <PlanFane klasse={k} foersteGang onRetLokale={() => opdaterKlasse(k.id, (x) => void (x.lokale = null))} />
+        <PlanFane klasse={k} lokale={lokale} foersteGang onRetLokale={() => opdaterKlasse(k.id, (x) => void (x.lokaleId = null))} />
       </div>
     );
   }
@@ -81,21 +78,17 @@ export function KlasseVisning(props: { klasse: Klasse }) {
           </button>
         </section>
       )}
-      {fane === 'plan' && k.elever.length > 0 && <PlanFane key={k.id} klasse={k} onRetLokale={() => setFane('lokale')} />}
-      {fane === 'elever' && <EleverFane key={k.id} klasse={k} />}
+      {fane === 'plan' && k.elever.length > 0 && <PlanFane key={k.id} klasse={k} lokale={lokale} onRetLokale={() => setFane('lokale')} />}
+      {fane === 'elever' && <EleverFane key={k.id} klasse={k} lokale={lokale} />}
       {fane === 'historik' && <HistorikFane key={k.id} klasse={k} />}
       {fane === 'lokale' && (
         <div>
           <h1>Lokalet for {k.navn}</h1>
-          <LokaleEditor
+          <LokaleSkaerm
             key={k.id}
             klasse={k}
             gemTekst="Gem lokale"
-            onGem={(lokale) => {
-              opdaterKlasse(k.id, (x) => {
-                x.lokale = lokale;
-                x.kladde = null;
-              });
+            onGemt={() => {
               visBesked('Lokalet er gemt. Det bruges fra næste plan.');
               setFane('plan');
             }}

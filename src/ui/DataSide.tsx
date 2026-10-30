@@ -33,8 +33,8 @@ export function DataSide(props: { onTilbage: () => void }) {
           navneliste, der følger med appen, og læreren retter forslaget. Navne, der bruges til begge køn, eller som ikke står på
           listen, gættes ikke.
         </li>
-        <li>Lokalets opstilling: antal borde, pladser og rækker.</li>
-        <li>Bordplanerne med dato.</li>
+        <li>Lokaler: lokalenummer (fx 007) og indretning, dvs. bordenes placering, tavlen og mobilskabet.</li>
+        <li>Bordplanerne med dato. Netværksgrupper og makkerpar gemmes ikke for sig; de følger af, hvor eleverne sidder.</li>
         <li>Par af elever, der skal holdes adskilt, og elever med fast plads. Der gemmes ingen begrundelse.</li>
         <li>Tidspunktet for den seneste sikkerhedskopi.</li>
       </ul>

@@ -6,11 +6,15 @@ Appen er en ren statisk side. Alt kører i browseren, og elevdata forlader aldri
 
 ## Sådan bruges den
 
-1. **Elever:** kopiér hele klasselisten fra Ludus eller Lectio, og indsæt den (Ctrl+V). Du kan også indsætte et skærmbillede eller skrive navnene. Ret navnene, og sæt køn med ét tryk.
-2. **Lokale:** vælg en opstilling (borde à 2 eller grupper à 3, 4 eller 5) og hvor mange rækker der tæller som forrest.
-3. **Første plan:** forslaget laves med det samme. Byt elever ved at trykke på to, eller træk dem. Tryk "Gem plan".
+1. **Elever:** kopiér hele klasselisten fra Ludus eller Lectio, og indsæt den (Ctrl+V). Du kan også indsætte et skærmbillede eller skrive navnene. Køn foreslås ud fra navnet; ret det med ét tryk.
+2. **Lokale:** vælg lokalet efter nummer (fx 205), eller byg et nyt ud fra en opstilling (lange rækker, borde à 4, borde à 2). Træk borde, tavle og mobilskab på plads. Lokalet huskes og kan bruges af alle dine klasser.
+3. **Første plan:** forslaget laves med det samme, inddelt i netværksgrupper og makkerpar. Byt elever ved at trykke på to, eller træk dem. Tryk "Gem plan".
 
-Derefter åbner appen på den gældende plan med "Lav ny plan". Planen kan udskrives (én A4-side), kopieres som tekst eller vises på tavlen. Prøv "Se en demoklasse" for at se det hele med opdigtede elever.
+Derefter åbner appen på den gældende plan med "Lav ny plan". Planen kan udskrives (to A4-sider: siddepladser og grupper), kopieres som tekst eller vises på tavlen.
+
+### Netværksgrupper og makkerpar
+
+De elever, der sidder ved et bord, deles fra bordets ene ende i **netværksgrupper** af cirka fire (et bord med 11 elever giver grupper på 4, 4 og 3), og hver gruppe i to **makkerpar**, der sidder ved siden af hinanden. Bliver en gruppe på 3, er det et makkerpar på tre, så ingen står uden makker. Ingen sidder alene ved et bord, og tomme pladser kommer i enden af bordene. Er der langt flere pladser end elever, står de bageste borde tomme. Byttes elever, følger grupperne pladserne. Prøv "Se en demoklasse" for at se det hele med opdigtede elever.
 
 ## Databeskyttelse
 
@@ -58,7 +62,8 @@ src/core/      Ren logik uden DOM, med tests
   forklaring.ts  Statusmærker og problemer pr. bord i almindeligt dansk
   import.ts      Udtræk af fornavne fra indsat tekst og tekstgenkendelse
   kladde.ts      Byt, lås, faste pladser
-  lokale.ts      Skabeloner og opbygning af lokalet
+  lokale.ts      Lokaler: skabeloner, størrelse, nummerering, data fra version 1
+  struktur.ts    Netværksgrupper og makkerpar
   fil.ts         Sikkerhedskopi (streng indlæsning)
   demo.ts        Demoklasse med opdigtede elever
 src/app/       Tilstand, lagring og handlinger
@@ -68,21 +73,27 @@ docs/UX.md     UX-gennemgang
 
 ### Bordplanalgoritmen
 
-Simuleret udglødning: 8 starter fra tilfældige fordelinger, hver med 20.000 forsøg på at bytte to elever (eller flytte en elev til en tom plads, når fordelingen stadig er jævn). Kun de to berørte borde regnes igen ved hvert forsøg, så 35 elever tager 30 til 90 ms. Låste elever flyttes aldrig. Den samlede straf er summen over bordene:
+Først afgøres, hvor mange elever der sidder ved hvert bord (ingen alene, tomme pladser i enden, bageste borde tomme ved mange ledige pladser). De optagne pladser deles i netværksgrupper og makkerpar. Derefter bruges simuleret udglødning: 8 starter fra tilfældige fordelinger, hver med 20.000 forsøg på at bytte to elever. Kun de berørte grupper og borde regnes igen ved hvert forsøg, så 35 elever tager under 100 ms. Låste elever flyttes aldrig. Den samlede straf er:
 
 | Hensyn | Straf | Standardvægt |
 |---|---|---|
 | Retfærdig rotation forrest | pr. elev ved et forreste bord: vægt × antal tidligere gange forrest, plus ekstra hvis forrest i sidste plan | 50 og 200 |
-| Nye relationer | pr. par ved samme bord: vægt × sum over tidligere planer, hvor parret sad sammen. Nyere planer vægter mere: 4 (sidste), 2,5, 1,5, derefter 1 | 10 |
-| Kønsbalance | vægt × (antal drenge ved bordet − forventet ud fra klassens fordeling)² | 6 |
-| Eneste af sit køn (bord med mindst 3) | pr. elev, plus ekstra hvis det også skete i sidste plan, plus for hver tidligere gang | 25, 250 og 25 |
+| Nye makkere | pr. makkerpar: vægt × sum over tidligere planer, hvor de var makkere. Nyere planer vægter mere: 4 (sidste), 2,5, 1,5, derefter 1 | 15 |
+| Nye netværksgrupper | pr. par af elever i samme gruppe: vægt × sum over tidligere planer, hvor de var i samme gruppe | 6 |
+| Blandede makkerpar | pr. makkerpar, hvor alle har samme køn | 30 |
+| Kønsbalance i gruppen | vægt × (antal drenge i gruppen − forventet ud fra klassens fordeling)² | 6 |
+| Eneste af sit køn (gruppe med mindst 3) | pr. elev, plus ekstra hvis det også skete i sidste plan, plus for hver tidligere gang | 25, 250 og 25 |
 | Hold adskilt | pr. par ved samme bord | 10⁹ |
 
-Elever uden angivet køn tæller ikke med i kønsbalancen. Passer elevtallet ikke med pladserne, fordeles eleverne, så der højst er én elev i forskel ved bordene. Vægtene står i `STANDARDVAEGTE` i `src/core/optimering.ts`.
+"Forrest" er de borde, der står nærmest tavlen; læreren kan ændre det for det enkelte bord. Elever uden angivet køn tæller ikke med i kønsbalancen. Vægtene står i `STANDARDVAEGTE` i `src/core/optimering.ts`.
 
-Testene (`src/core/optimering.test.ts`) viser blandt andet: ingen gentagne makkere over 6 runder, retfærdig rotation forrest over 6 runder (ingen to gange i træk, højst én gangs forskel), ingen eneste af sit køn to gange i træk, "hold adskilt" overholdes altid, låste elever står fast, og en plan tager under et sekund.
+Testene (`src/core/optimering.test.ts`) viser blandt andet: makkerpar er blandede, når kønsfordelingen tillader det; ingen får samme makker igen over 6 runder; ingen kommer i gruppe med en fra sidste gruppe over 4 runder; retfærdig rotation forrest over 6 runder; ingen er eneste af sit køn i gruppen to gange i træk; "hold adskilt" overholdes; låste elever står fast; ingen sidder alene, og tomme pladser er i enden; en plan tager under et sekund.
 
-Bemærk: hvis mange borde tæller som forrest (fx 3 af 6 grupper), kan gentagne bordmakkere ikke altid undgås, fordi de forreste borde skal fyldes med elever fra få borde bagved. Appen advarer om det, når lokalet sættes op.
+Med kun borde à 2 og et ulige antal elever må én sidde alene. Lokale-editoren foreslår da at give ét bord en plads mere.
+
+### Lokaler
+
+Et lokale har et nummer, en størrelse, borde (en række af pladser, vandret eller lodret, med fri placering), tavlen ved en af væggene og et mobilskab. Lokaler gemmes for sig og deles mellem klasserne. Hver gemt plan har en kopi af lokalet, så historikken passer, selvom lokalet ændres. Data fra appens første version (hvor lokalet var et gitter i klassen) flyttes automatisk over, når appen åbnes, og når en gammel sikkerhedskopi hentes.
 
 ### Import
 
@@ -126,7 +137,7 @@ Appen er designet efter disse principper. Hele gennemgangen, og hvad der blev re
 - **Steve Krug, "Don't Make Me Think":** én tydelig primær handling pr. skærm i accentfarven. Knapper siger præcis, hvad der sker ("Gem 26 elever og fortsæt"). Appen gætter for læreren (fornavne, antal borde, dato, første forslag).
 - **Trinvis afsløring:** guide i tre trin, hvor kun det aktuelle vises. Importmåder som faneblade og kontrolskærm bagefter. "Tilpas antal" er skjult, og lås vises først, når en elev er valgt.
 - **Hicks lov:** to valg på velkomstskærmen, fire skabeloner, sjældne handlinger i menuen.
-- **Gode standardvalg:** borde à 2, 1 forreste række, dagens dato, antal borde ud fra elevtallet.
+- **Gode standardvalg:** borde à 4 (én netværksgruppe pr. bord), forreste borde afgøres ud fra tavlen, dagens dato, antal borde ud fra elevtallet, lokalet huskes.
 - **Fortryd frem for bekræftelser:** ingen bekræftelsesdialoger. Alle sletninger kan fortrydes i 10 sekunder.
 - **Tilgængelighed (WCAG 2.2 AA):**
   - Kontrolleret med axe-core på alle skærme i to bredder, med tastatur alene og ved 320 px.

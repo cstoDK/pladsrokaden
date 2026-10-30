@@ -4,15 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { iDag, planTitel } from '../../core/dato';
 import { forklar } from '../../core/forklaring';
 import { type Plads, byt, lavKladde, manglerIPlan, skiftLaas } from '../../core/kladde';
-import { type Klasse, type Kladde } from '../../core/model';
+import { type Klasse, type Kladde, type Lokale } from '../../core/model';
 import { medFortryd, opdaterKlasse, visBesked } from '../../app/tilstand';
 import { Lokaletegning } from './Lokaletegning';
 import { useFokusPaaOverskrift } from '../Faelles';
-import { DelKnapper } from './Deling';
+import { DelKnapper, GruppeOversigt } from './Deling';
+import { type BordProblem } from '../../core/forklaring';
 import { boerTageSikkerhedskopi, gemSikkerhedskopi } from '../../app/handlinger';
 import { hentData } from '../../app/tilstand';
 
-export function PlanFane(props: { klasse: Klasse; foersteGang?: boolean; onRetLokale: () => void }) {
+export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: boolean; onRetLokale: () => void }) {
   const k = props.klasse;
   const [redigerer, setRedigerer] = useState(props.foersteGang ?? false);
   const [fejl, setFejl] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export function PlanFane(props: { klasse: Klasse; foersteGang?: boolean; onRetLo
       setRedigerer(true);
       return;
     }
-    const r = lavKladde(k, iDag());
+    const r = lavKladde(k, props.lokale, iDag());
     if ('fejl' in r) {
       setFejl(r.fejl);
       return;
@@ -40,7 +41,7 @@ export function PlanFane(props: { klasse: Klasse; foersteGang?: boolean; onRetLo
   }, []);
 
   if (redigerer && k.kladde) {
-    return <KladdeEditor klasse={k} kladde={k.kladde} foersteGang={props.foersteGang} onLuk={() => setRedigerer(false)} />;
+    return <KladdeEditor klasse={k} lokale={props.lokale} kladde={k.kladde} foersteGang={props.foersteGang} onLuk={() => setRedigerer(false)} />;
   }
 
   const plan = k.planer[k.planer.length - 1];
@@ -100,6 +101,9 @@ function GemtPlan(props: { klasse: Klasse }) {
       <DelKnapper klasse={k} plan={plan} />
       <Statusliste status={f.status} />
       <Lokaletegning lokale={plan.lokale} placering={plan.placering} navn={navn} overskrift="Bordplan" />
+      <Problemliste lokale={plan.lokale} problemer={f.borde} />
+      <h2 class="mellemoverskrift">Netværksgrupper og makkerpar</h2>
+      <GruppeOversigt plan={plan} navn={navn} />
     </>
   );
 }
@@ -126,7 +130,7 @@ export function Statusliste(props: { status: { niveau: string; tekst: string }[]
 
 // ----------------------------------------------------------------------
 
-function KladdeEditor(props: { klasse: Klasse; kladde: Kladde; foersteGang?: boolean; onLuk: () => void }) {
+function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; foersteGang?: boolean; onLuk: () => void }) {
   const k = props.klasse;
   const kladde = props.kladde;
   const [valgt, setValgt] = useState<Plads | null>(null);
@@ -218,7 +222,7 @@ function KladdeEditor(props: { klasse: Klasse; kladde: Kladde; foersteGang?: boo
   }
 
   function nytForslag() {
-    const r = lavKladde(k, plan.dato, kladde.laase);
+    const r = lavKladde(k, props.lokale, plan.dato, kladde.laase);
     if ('fejl' in r) {
       setFejl(r.fejl);
       return;
@@ -338,7 +342,6 @@ function KladdeEditor(props: { klasse: Klasse; kladde: Kladde; foersteGang?: boo
         placering={plan.placering}
         navn={navn}
         overskrift="Bordplan"
-        problemer={f.borde}
         redigering={{
           valgt,
           laaste,
@@ -346,10 +349,33 @@ function KladdeEditor(props: { klasse: Klasse; kladde: Kladde; foersteGang?: boo
           onByt: bytPladser,
         }}
       />
+      <Problemliste lokale={plan.lokale} problemer={f.borde} />
+      <h2 class="mellemoverskrift">Netværksgrupper og makkerpar</h2>
+      <GruppeOversigt plan={plan} navn={navn} />
       <p class="hjaelp" style={{ marginTop: '1rem' }}>
         Vil du have en elev til at blive på sin plads, når du trykker "Nyt forslag"? Tryk på eleven og vælg "Lås på pladsen". Faste
         pladser for hele året sætter du under Elever.
       </p>
     </div>
+  );
+}
+
+/** Det, der ikke kunne undgås, samlet bord for bord under lokalet. */
+function Problemliste(props: { lokale: Lokale; problemer: Record<string, BordProblem[]> }) {
+  const linjer = props.lokale.borde.flatMap((b, i) => (props.problemer[b.id] ?? []).map((p) => ({ ...p, bord: i + 1 })));
+  if (linjer.length === 0) return null;
+  return (
+    <section aria-labelledby="problem-titel">
+      <h2 id="problem-titel" class="mellemoverskrift">
+        Det kunne ikke undgås
+      </h2>
+      <ul class="problemliste">
+        {linjer.map((p, i) => (
+          <li key={i} class={p.niveau}>
+            Bord {p.bord}: {p.tekst}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

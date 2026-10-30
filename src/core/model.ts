@@ -14,18 +14,34 @@ export interface Elev {
   koen: Koen;
 }
 
+/**
+ * Et bord er en række pladser. Koordinater er i "pladser": én plads er 1 bred
+ * og et bord er 1 dybt. (0, 0) er lokalets øverste venstre hjørne.
+ */
 export interface Bord {
   id: BordId;
-  /** 0 er rækken nærmest tavlen. */
-  raekke: number;
-  kolonne: number;
+  x: number;
+  y: number;
   pladser: number;
+  /** Pladserne står under hinanden i stedet for ved siden af hinanden. */
+  lodret: boolean;
+  /** Lærerens eget valg. Udeladt: afgøres automatisk ud fra afstanden til tavlen. */
+  forrest?: boolean;
 }
 
+export type Vaeg = 'top' | 'bund' | 'venstre' | 'hoejre';
+
 export interface Lokale {
+  id: string;
+  /** Lokalets nummer eller navn, fx "007". */
+  navn: string;
+  bredde: number;
+  hoejde: number;
   borde: Bord[];
-  /** Antal rækker, der tæller som "forrest". */
-  forresteRaekker: number;
+  /** Tavlen står ved en væg. `midte` er midten langs væggen (i pladser). */
+  tavle: { vaeg: Vaeg; midte: number; laengde: number };
+  /** Mobilskabets øverste venstre hjørne, eller null hvis der ikke er et. */
+  mobilskab: { x: number; y: number } | null;
 }
 
 /** Hvem sidder på hvilken plads. Listen har én post pr. plads; null er en tom plads. */
@@ -54,8 +70,8 @@ export interface Klasse {
   holdAdskilt: [ElevId, ElevId][];
   /** Faste pladser, som følger med fra plan til plan. Ingen begrundelse gemmes. */
   faste: Laas[];
-  /** null, indtil læreren har valgt et lokale. */
-  lokale: Lokale | null;
+  /** Lokalet, klassen bruger. null, indtil læreren har valgt et. */
+  lokaleId: string | null;
   /** Gemte planer, ældste først. */
   planer: Plan[];
   /** Forslag, der ikke er gemt endnu. */
@@ -69,28 +85,70 @@ export interface Kladde {
 }
 
 export interface AppData {
-  version: 1;
+  version: 2;
   klasser: Klasse[];
+  /** Lokaler deles mellem klasserne og huskes med deres indretning. */
+  lokaler: Lokale[];
   aktivKlasseId: string | null;
   /** Hvornår der sidst blev gemt en sikkerhedskopi (ISO-tidspunkt). */
   sidstEksporteret: string | null;
 }
 
 export function tomtAppData(): AppData {
-  return { version: 1, klasser: [], aktivKlasseId: null, sidstEksporteret: null };
+  return { version: 2, klasser: [], lokaler: [], aktivKlasseId: null, sidstEksporteret: null };
 }
 
 export function nyKlasse(navn: string, elever: Elev[]): Klasse {
-  return { id: nyId(), navn, erDemo: false, elever, holdAdskilt: [], faste: [], lokale: null, planer: [], kladde: null };
+  return { id: nyId(), navn, erDemo: false, elever, holdAdskilt: [], faste: [], lokaleId: null, planer: [], kladde: null };
+}
+
+export function findLokale(d: { lokaler: Lokale[] }, k: Klasse): Lokale | null {
+  return d.lokaler.find((l) => l.id === k.lokaleId) ?? null;
 }
 
 export function nyId(): string {
   return crypto.randomUUID();
 }
 
-/** Er bordet i de forreste rækker? */
+export const MOBILSKAB = { bredde: 2, hoejde: 1 };
+
+export function bordBredde(b: Bord): number {
+  return b.lodret ? 1 : b.pladser;
+}
+export function bordHoejde(b: Bord): number {
+  return b.lodret ? b.pladser : 1;
+}
+
+/** Afstand fra bordets nærmeste kant til tavlens væg. */
+export function afstandTilTavle(b: Bord, l: Lokale): number {
+  switch (l.tavle.vaeg) {
+    case 'top':
+      return b.y;
+    case 'bund':
+      return l.hoejde - (b.y + bordHoejde(b));
+    case 'venstre':
+      return b.x;
+    case 'hoejre':
+      return l.bredde - (b.x + bordBredde(b));
+  }
+}
+
+/**
+ * De borde, der tæller som forrest: lærerens eget valg, ellers de borde,
+ * der står nærmest tavlen (den forreste "række").
+ */
+export function forresteBorde(l: Lokale): Set<BordId> {
+  const auto = l.borde.filter((b) => b.forrest === undefined);
+  const min = Math.min(...auto.map((b) => afstandTilTavle(b, l)));
+  const res = new Set<BordId>();
+  for (const b of l.borde) {
+    if (b.forrest === true || (b.forrest === undefined && afstandTilTavle(b, l) <= min + 0.75)) res.add(b.id);
+  }
+  return res;
+}
+
 export function erForrest(bord: Bord, lokale: Lokale): boolean {
-  return bord.raekke < lokale.forresteRaekker;
+  return forresteBorde(lokale).has(bord.id);
 }
 
 /** Bordets nummer, som læreren ser det (1, 2, 3 ...), i lokalets rækkefølge. */

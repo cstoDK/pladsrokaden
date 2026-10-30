@@ -1,5 +1,6 @@
 // Gemmer appens data i browserens localStorage. Intet sendes nogen steder hen.
 
+import { laesAppData } from '../core/fil';
 import { type AppData, tomtAppData } from '../core/model';
 
 const NOEGLE = 'pladsrokaden.v1';
@@ -8,9 +9,8 @@ export function indlaes(): AppData {
   try {
     const raa = localStorage.getItem(NOEGLE);
     if (!raa) return tomtAppData();
-    const d = JSON.parse(raa) as AppData;
-    if (d?.version !== 1 || !Array.isArray(d.klasser)) return tomtAppData();
-    return d;
+    // Læses strengt og flyttes over fra version 1, hvis det er nødvendigt.
+    return laesAppData(JSON.parse(raa));
   } catch {
     return tomtAppData();
   }

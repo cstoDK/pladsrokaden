@@ -2,8 +2,9 @@
 
 import { aleneVedBord, koenOpslag } from './historik';
 import { type LokaleIndstillinger, lavLokale } from './lokale';
-import { type Elev, type ElevId, type Koen, type Laas, type Lokale, type Plan, elevIderVedBord, erForrest } from './model';
+import { type Elev, type ElevId, type Koen, type Laas, type Lokale, type Plan, elevIderVedBord, forresteBorde } from './model';
 import { lavPlacering } from './optimering';
+import { planGrupper } from './struktur';
 
 export function lavElever(piger: number, drenge: number, udenKoen = 0): Elev[] {
   const res: Elev[] = [];
@@ -16,18 +17,13 @@ export function lavElever(piger: number, drenge: number, udenKoen = 0): Elev[] {
   return res;
 }
 
-/** Faste id'er, så tests kan gentages. */
+/** Faste id'er (B1, B2 ...), så tests kan gentages. */
 export function testLokale(ind: LokaleIndstillinger): Lokale {
-  const l = lavLokale(ind);
+  const l = lavLokale(ind, 'T');
   l.borde.forEach((b, i) => (b.id = `B${i + 1}`));
   return l;
 }
 
-export interface Simulering {
-  planer: Plan[];
-}
-
-/** Laver `runder` planer efter hinanden, som en lærer ville gøre det. */
 export function simuler(
   elever: Elev[],
   lokale: Lokale,
@@ -54,18 +50,35 @@ export function bordGrupper(plan: Plan): ElevId[][] {
 }
 
 export function forreste(plan: Plan): ElevId[] {
-  return plan.lokale.borde.filter((b) => erForrest(b, plan.lokale)).flatMap((b) => elevIderVedBord(plan.placering, b.id));
+  const f = forresteBorde(plan.lokale);
+  return plan.lokale.borde.filter((b) => f.has(b.id)).flatMap((b) => elevIderVedBord(plan.placering, b.id));
 }
 
+/** Elever, der er eneste af deres køn i en netværksgruppe. */
 export function alene(plan: Plan, elever: Elev[]): ElevId[] {
   const k = koenOpslag(elever);
-  return bordGrupper(plan).flatMap((g) => aleneVedBord(g, k));
+  return planGrupper(plan.lokale, plan.placering).flatMap((g) => aleneVedBord(g.par.flat(), k));
 }
 
-export function par(plan: Plan): string[] {
+function parAf(lister: ElevId[][]): string[] {
   const res: string[] = [];
-  for (const g of bordGrupper(plan)) {
+  for (const g of lister) {
     for (let a = 0; a < g.length; a++) for (let b = a + 1; b < g.length; b++) res.push([g[a], g[b]].sort().join('|'));
   }
   return res;
+}
+
+/** Alle par af elever ved samme bord. */
+export function par(plan: Plan): string[] {
+  return parAf(bordGrupper(plan));
+}
+
+/** Alle makkerpar (par af elever, der er makkere). */
+export function makkerpar(plan: Plan): string[] {
+  return parAf(planGrupper(plan.lokale, plan.placering).flatMap((g) => g.par));
+}
+
+/** Alle par af elever i samme netværksgruppe. */
+export function gruppepar(plan: Plan): string[] {
+  return parAf(planGrupper(plan.lokale, plan.placering).map((g) => g.par.flat()));
 }

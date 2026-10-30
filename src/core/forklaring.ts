@@ -2,7 +2,8 @@
 // hele planen og de problemer ved hvert bord, der ikke kunne undgås.
 
 import { aleneVedBord, bygHistorik, koenOpslag, parNoegle } from './historik';
-import { type BordId, type Elev, type ElevId, type Lokale, type Placering, type Plan, elevIderVedBord, erForrest } from './model';
+import { type BordId, type Elev, type ElevId, type Lokale, type Placering, type Plan, elevIderVedBord, forresteBorde } from './model';
+import { planGrupper } from './struktur';
 
 export type Niveau = 'ok' | 'bemaerk' | 'fejl';
 
@@ -32,112 +33,123 @@ export interface ForklaringsInput {
 
 export function forklar(input: ForklaringsInput): Forklaring {
   const { elever, lokale, placering, tidligere } = input;
-  const navn = new Map(elever.map((e) => [e.id, e.navn]));
-  const n = (id: ElevId) => navn.get(id) ?? 'Ukendt';
+  const navne = new Map(elever.map((e) => [e.id, e.navn]));
+  const n = (id: ElevId) => navne.get(id) ?? 'Ukendt';
+  const og = (ider: ElevId[]) => ider.map(n).join(' og ');
   const koenAf = koenOpslag(elever);
   const h = bygHistorik(elever, tidligere);
   const harHistorik = tidligere.length > 0;
   const adskilt = new Set(input.holdAdskilt.map(([a, b]) => parNoegle(a, b)));
-  const kunPar = lokale.borde.every((b) => b.pladser <= 2);
+  const forrest = forresteBorde(lokale);
+  const grupper = planGrupper(lokale, placering);
 
   const borde: Record<BordId, BordProblem[]> = {};
-  let parIgen = 0;
-  let parFoer = 0;
+  for (const b of lokale.borde) borde[b.id] = [];
+  let makkerIgen = 0;
+  let makkerFoer = 0;
+  let gruppeIgen = 0;
+  let ikkeBlandet = 0;
+  let kanBlandes = 0;
   let forrestIgen = 0;
   let alene = 0;
   let aleneIgen = 0;
   let adskiltBrudt = 0;
-  let harStoreBorde = false;
-  let harForreste = false;
+  let ensomme = 0;
 
-  for (const bord of lokale.borde) {
-    const ider = elevIderVedBord(placering, bord.id);
-    const problemer: BordProblem[] = [];
-    if (ider.length >= 3) harStoreBorde = true;
-
-    for (let a = 0; a < ider.length; a++) {
-      for (let b = a + 1; b < ider.length; b++) {
-        const x = ider[a]!;
-        const y = ider[b]!;
-        const k = parNoegle(x, y);
-        const par = `${n(x)} og ${n(y)}`;
-        if (adskilt.has(k)) {
-          adskiltBrudt++;
-          problemer.push({ niveau: 'fejl', tekst: `${par} skal holdes adskilt`, elevIder: [x, y] });
+  for (const g of grupper) {
+    const liste = borde[g.bordId]!;
+    for (const par of g.par) {
+      const k = par.map(koenAf);
+      if (par.length >= 2 && k.every(Boolean)) {
+        kanBlandes++;
+        if (k.every((x) => x === k[0])) {
+          ikkeBlandet++;
+          liste.push({ niveau: 'bemaerk', tekst: `${og(par)} er ${par.length === 2 ? 'to' : 'tre'} ${k[0] === 'P' ? 'piger' : 'drenge'}`, elevIder: par });
         }
-        if (h.parSidst.has(k)) {
-          parIgen++;
-          problemer.push({ niveau: 'bemaerk', tekst: `${par} sad også sammen sidst`, elevIder: [x, y] });
-        } else if (h.parAntal.has(k)) {
-          parFoer++;
-          const gange = h.parAntal.get(k)!;
-          if (gange >= 2) {
-            problemer.push({ niveau: 'bemaerk', tekst: `${par} har siddet sammen ${gange} gange før`, elevIder: [x, y] });
+      }
+      for (let a = 0; a < par.length; a++) {
+        for (let b = a + 1; b < par.length; b++) {
+          const nk = parNoegle(par[a]!, par[b]!);
+          if (h.makker.sidst.has(nk)) {
+            makkerIgen++;
+            liste.push({ niveau: 'bemaerk', tekst: `${og([par[a]!, par[b]!])} var også makkere sidst`, elevIder: [par[a]!, par[b]!] });
+          } else if (h.makker.antal.has(nk)) {
+            makkerFoer++;
+            liste.push({ niveau: 'bemaerk', tekst: `${og([par[a]!, par[b]!])} har været makkere før`, elevIder: [par[a]!, par[b]!] });
           }
         }
       }
     }
+    const alle = g.par.flat();
+    for (let a = 0; a < alle.length; a++) {
+      for (let b = a + 1; b < alle.length; b++) if (h.gruppe.sidst.has(parNoegle(alle[a]!, alle[b]!))) gruppeIgen++;
+    }
+    for (const id of aleneVedBord(alle, koenAf)) {
+      alene++;
+      const ord = koenAf(id) === 'P' ? 'pige' : 'dreng';
+      const igen = h.aleneSidst.has(id);
+      if (igen) aleneIgen++;
+      liste.push({ niveau: 'bemaerk', tekst: `${n(id)} er eneste ${ord} i gruppe ${g.nr}${igen ? ' igen' : ''}`, elevIder: [id] });
+    }
+  }
 
-    if (erForrest(bord, lokale)) {
-      harForreste = true;
-      for (const id of ider) {
-        if (h.forrestSidst.has(id)) {
-          forrestIgen++;
-          problemer.push({ niveau: 'bemaerk', tekst: `${n(id)} er forrest igen`, elevIder: [id] });
+  for (const bord of lokale.borde) {
+    const ider = elevIderVedBord(placering, bord.id);
+    const liste = borde[bord.id]!;
+    if (ider.length === 1) {
+      ensomme++;
+      liste.unshift({ niveau: 'fejl', tekst: `${n(ider[0]!)} sidder alene ved bordet`, elevIder: ider });
+    }
+    for (let a = 0; a < ider.length; a++) {
+      for (let b = a + 1; b < ider.length; b++) {
+        if (adskilt.has(parNoegle(ider[a]!, ider[b]!))) {
+          adskiltBrudt++;
+          liste.unshift({ niveau: 'fejl', tekst: `${og([ider[a]!, ider[b]!])} skal holdes adskilt`, elevIder: [ider[a]!, ider[b]!] });
         }
       }
     }
-
-    for (const id of aleneVedBord(ider, koenAf)) {
-      alene++;
-      const ord = koenAf(id) === 'P' ? 'pige' : 'dreng';
-      if (h.aleneSidst.has(id)) {
-        aleneIgen++;
-        problemer.push({ niveau: 'bemaerk', tekst: `${n(id)} er eneste ${ord} ved bordet igen`, elevIder: [id] });
-      } else {
-        problemer.push({ niveau: 'bemaerk', tekst: `${n(id)} er eneste ${ord} ved bordet`, elevIder: [id] });
+    if (forrest.has(bord.id)) {
+      for (const id of ider) {
+        if (h.forrestSidst.has(id)) {
+          forrestIgen++;
+          liste.push({ niveau: 'bemaerk', tekst: `${n(id)} er forrest igen`, elevIder: [id] });
+        }
       }
     }
-
-    borde[bord.id] = problemer;
   }
 
   const status: Statusmaerke[] = [];
-  const makker = kunPar ? 'makker' : 'bordmakker';
-
-  if (harHistorik) {
-    if (parIgen === 0 && parFoer === 0) {
-      status.push({ niveau: 'ok', tekst: `Alle sidder med nye ${makker}e` });
-    } else if (parIgen === 0) {
-      status.push({ niveau: 'ok', tekst: `Ingen sidder med samme ${makker} som sidst` });
-    } else {
-      status.push({ niveau: 'bemaerk', tekst: `${antal(parIgen, 'par', 'par')} sad også sammen sidst` });
-    }
+  if (ensomme > 0) {
+    status.push({ niveau: 'fejl', tekst: `${ensomme} ${ensomme === 1 ? 'elev sidder' : 'elever sidder'} alene ved et bord` });
   }
-
-  if (harHistorik && harForreste) {
+  if (harHistorik) {
+    if (makkerIgen === 0 && makkerFoer === 0) status.push({ niveau: 'ok', tekst: 'Alle har en ny makker' });
+    else if (makkerIgen === 0) status.push({ niveau: 'ok', tekst: 'Ingen har samme makker som sidst' });
+    else status.push({ niveau: 'bemaerk', tekst: `${antal(makkerIgen, 'makkerpar', 'makkerpar')} er det samme som sidst` });
     status.push(
-      forrestIgen === 0
-        ? { niveau: 'ok', tekst: 'Ingen er forrest to gange i træk' }
-        : { niveau: 'bemaerk', tekst: `${forrestIgen} er forrest igen` },
+      gruppeIgen === 0
+        ? { niveau: 'ok', tekst: 'Ingen er i netværksgruppe med en fra sidste gruppe' }
+        : { niveau: 'bemaerk', tekst: `${antal(gruppeIgen, 'par af elever', 'par af elever')} var også i samme netværksgruppe sidst` },
     );
   }
-
-  if (harStoreBorde) {
-    if (alene === 0) status.push({ niveau: 'ok', tekst: 'Ingen er eneste af sit køn ved et bord' });
-    else if (aleneIgen > 0) status.push({ niveau: 'bemaerk', tekst: `${aleneIgen} er eneste af sit køn ved bordet igen` });
-    else if (harHistorik) status.push({ niveau: 'bemaerk', tekst: `${alene} er eneste af sit køn ved bordet, men ingen to gange i træk` });
-    else status.push({ niveau: 'bemaerk', tekst: `${alene} er eneste af sit køn ved bordet` });
+  if (kanBlandes > 0) {
+    status.push(
+      ikkeBlandet === 0
+        ? { niveau: 'ok', tekst: 'Alle makkerpar er blandede (pige og dreng)' }
+        : { niveau: 'bemaerk', tekst: `${antal(ikkeBlandet, 'makkerpar', 'makkerpar')} er ikke blandet` },
+    );
   }
-
+  if (harHistorik && forrest.size > 0) {
+    status.push(forrestIgen === 0 ? { niveau: 'ok', tekst: 'Ingen er forrest to gange i træk' } : { niveau: 'bemaerk', tekst: `${forrestIgen} er forrest igen` });
+  }
+  if (alene > 0) {
+    if (aleneIgen > 0) status.push({ niveau: 'bemaerk', tekst: `${aleneIgen} er eneste af sit køn i gruppen igen` });
+    else status.push({ niveau: 'bemaerk', tekst: `${alene} er eneste af sit køn i gruppen${harHistorik ? ', men ingen to gange i træk' : ''}` });
+  }
   const udenKoen = elever.filter((e) => e.koen === null).length;
   if (udenKoen > 0) {
-    status.push({
-      niveau: 'bemaerk',
-      tekst: `${antal(udenKoen, 'elev', 'elever')} mangler køn og tæller ikke med i kønsfordelingen`,
-    });
+    status.push({ niveau: 'bemaerk', tekst: `${antal(udenKoen, 'elev', 'elever')} mangler køn og tæller ikke med i kønsfordelingen` });
   }
-
   if (input.holdAdskilt.length > 0) {
     status.push(
       adskiltBrudt === 0
@@ -145,7 +157,6 @@ export function forklar(input: ForklaringsInput): Forklaring {
         : { niveau: 'fejl', tekst: `${antal(adskiltBrudt, 'par', 'par')}, der skal holdes adskilt, sidder ved samme bord` },
     );
   }
-
   return { status, borde };
 }
 

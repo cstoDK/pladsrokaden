@@ -8,59 +8,41 @@ const elever: Elev[] = [
   { id: 'b', navn: 'Malte', koen: 'D' },
   { id: 'c', navn: 'Sara', koen: 'P' },
   { id: 'd', navn: 'Omar', koen: 'D' },
+  { id: 'e', navn: 'Emil', koen: 'D' },
+  { id: 'f', navn: 'Lea', koen: null },
 ];
+const lokale = testLokale({ antalBorde: 2, pladserPrBord: 4, bordePrRaekke: 1 }); // B1 forrest
+const tekster = (f: ReturnType<typeof forklar>) => f.status.map((s) => s.tekst);
 
-describe('forklar: borde à 2', () => {
-  const lokale = testLokale({ antalBorde: 2, pladserPrBord: 2, bordePrRaekke: 1, forresteRaekker: 1 });
-  const sidst: Plan = { id: 'p', dato: '2026-01-01', lokale, placering: { B1: ['a', 'b'], B2: ['c', 'd'] } };
-  const tekster = (f: ReturnType<typeof forklar>) => f.status.map((s) => s.tekst);
+describe('forklar', () => {
+  const sidst: Plan = { id: 'p', dato: '2026-01-01', lokale, placering: { B1: ['a', 'b', 'c', 'd'], B2: ['e', 'f', null, null] } };
 
-  it('melder ingen gentagelser, når alle har nye makkere', () => {
-    const f = forklar({ elever, lokale, placering: { B1: ['c', 'b'], B2: ['a', 'd'] }, tidligere: [sidst], holdAdskilt: [] });
-    expect(tekster(f)).toContain('Alle sidder med nye makkere');
-    expect(tekster(f)).toContain('1 er forrest igen');
-    expect(f.borde['B1']!.map((p) => p.tekst)).toEqual(['Malte er forrest igen']);
-    expect(f.borde['B2']).toEqual([]);
+  it('melder nye makkere, grupper og blandede par', () => {
+    const f = forklar({ elever, lokale, placering: { B1: ['e', 'a', 'f', 'c'], B2: ['b', 'd', null, null] }, tidligere: [sidst], holdAdskilt: [] });
+    expect(tekster(f)).toContain('Alle har en ny makker');
+    expect(tekster(f)).toContain('2 er forrest igen'); // Ida og Sara
+    expect(tekster(f)).toContain('1 makkerpar er ikke blandet');
+    expect(f.borde['B2']!.map((p) => p.tekst)).toEqual(['Malte og Omar er to drenge']);
   });
 
-  it('melder par, der sidder sammen igen, ved bordet og samlet', () => {
-    const f = forklar({ elever, lokale, placering: { B1: ['c', 'd'], B2: ['a', 'b'] }, tidligere: [sidst], holdAdskilt: [] });
-    expect(tekster(f)).toContain('2 par sad også sammen sidst');
-    expect(tekster(f)).toContain('Ingen er forrest to gange i træk');
-    expect(f.borde['B2']!.map((p) => p.tekst)).toEqual(['Ida og Malte sad også sammen sidst']);
+  it('melder makkere og gruppe fra sidst, og forrest igen', () => {
+    const f = forklar({ elever, lokale, placering: { B1: ['a', 'b', 'e', 'f'], B2: ['c', 'd', null, null] }, tidligere: [sidst], holdAdskilt: [] });
+    expect(tekster(f)).toContain('3 makkerpar er det samme som sidst'); // Ida+Malte, Emil+Lea, Sara+Omar
+    expect(tekster(f)).toContain('3 par af elever var også i samme netværksgruppe sidst');
+    expect(tekster(f)).toContain('2 er forrest igen');
+    expect(f.borde['B1']!.map((p) => p.tekst)).toContain('Ida og Malte var også makkere sidst');
   });
 
-  it('viser intet om historik ved første plan', () => {
-    const f = forklar({ elever, lokale, placering: sidst.placering, tidligere: [], holdAdskilt: [] });
-    expect(f.status).toEqual([]);
-  });
-
-  it('melder brudt "hold adskilt" som fejl', () => {
-    const f = forklar({ elever, lokale, placering: sidst.placering, tidligere: [], holdAdskilt: [['a', 'b']] });
+  it('melder elever alene ved et bord og brudt "hold adskilt" som fejl', () => {
+    const f = forklar({ elever, lokale, placering: { B1: ['a', 'b', 'c', 'd'], B2: ['e', null, null, null] }, tidligere: [], holdAdskilt: [['a', 'b']] });
+    expect(f.status).toContainEqual({ niveau: 'fejl', tekst: '1 elev sidder alene ved et bord' });
     expect(f.status).toContainEqual({ niveau: 'fejl', tekst: '1 par, der skal holdes adskilt, sidder ved samme bord' });
-    expect(f.borde['B1']![0]).toMatchObject({ niveau: 'fejl', tekst: 'Ida og Malte skal holdes adskilt' });
-  });
-});
-
-describe('forklar: grupper', () => {
-  const lokale = testLokale({ antalBorde: 2, pladserPrBord: 3, bordePrRaekke: 2, forresteRaekker: 1 });
-  const seks: Elev[] = [...elever, { id: 'e', navn: 'Emil', koen: 'D' }, { id: 'f', navn: 'Lea', koen: null }];
-
-  it('navngiver den, der er eneste af sit køn, og siger "igen"', () => {
-    const tidligere: Plan[] = [{ id: 'p', dato: '2026-01-01', lokale, placering: { B1: ['a', 'b', 'd'], B2: ['c', 'e', 'f'] } }];
-    const f = forklar({ elever: seks, lokale, placering: { B1: ['a', 'e', 'd'], B2: ['c', 'b', 'f'] }, tidligere, holdAdskilt: [] });
-    expect(f.borde['B1']!.map((p) => p.tekst)).toContain('Ida er eneste pige ved bordet igen');
-    expect(f.status.map((s) => s.tekst)).toContain('1 er eneste af sit køn ved bordet igen');
-    expect(f.status.map((s) => s.tekst)).toContain('1 elev mangler køn og tæller ikke med i kønsfordelingen');
+    expect(f.borde['B2']![0]).toMatchObject({ niveau: 'fejl', tekst: 'Emil sidder alene ved bordet' });
   });
 
-  it('siger ikke "to gange i træk" ved første plan', () => {
-    const f = forklar({ elever: seks, lokale, placering: { B1: ['a', 'e', 'd'], B2: ['c', 'b', 'f'] }, tidligere: [], holdAdskilt: [] });
-    expect(f.status.map((s) => s.tekst)).toContain('1 er eneste af sit køn ved bordet');
-  });
-
-  it('roser en plan uden nogen alene om sit køn', () => {
-    const f = forklar({ elever: seks, lokale, placering: { B1: ['a', 'c', 'f'], B2: ['b', 'd', 'e'] }, tidligere: [], holdAdskilt: [] });
-    expect(f.status.map((s) => s.tekst)).toContain('Ingen er eneste af sit køn ved et bord');
+  it('navngiver den, der er eneste af sit køn i gruppen', () => {
+    const f = forklar({ elever, lokale, placering: { B1: ['a', 'b', 'd', 'e'], B2: ['c', 'f', null, null] }, tidligere: [], holdAdskilt: [] });
+    expect(f.borde['B1']!.map((p) => p.tekst)).toContain('Ida er eneste pige i gruppe 1');
+    expect(tekster(f)).toContain('1 er eneste af sit køn i gruppen');
   });
 });

@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { planTitel } from '../../core/dato';
 import { planSomTekst } from '../../core/deling';
 import { type Klasse, type Plan } from '../../core/model';
+import { planGrupper } from '../../core/struktur';
 import { hentUdskrift, kopierTekst, lytTilUdskrift, nulstilUdskrift, udskriv } from '../../app/handlinger';
 import { hentData, visBesked } from '../../app/tilstand';
-import { Lokaletegning } from './Lokaletegning';
+import { Lokaletegning, gruppefarve } from './Lokaletegning';
 
-function navneOpslag(k: Klasse) {
+export function navneOpslag(k: Klasse) {
   const m = new Map(k.elever.map((e) => [e.id, e.navn]));
-  return (id: string) => m.get(id) ?? '';
+  return (id: string) => m.get(id) ?? 'Tidligere elev';
 }
 
 export function DelKnapper(props: { klasse: Klasse; plan: Plan }) {
@@ -27,7 +28,7 @@ export function DelKnapper(props: { klasse: Klasse; plan: Plan }) {
           type="button"
           onClick={async () => {
             const ok = await kopierTekst(planSomTekst(klasse.navn, plan, navneOpslag(klasse)));
-            visBesked(ok ? 'Planen er kopieret som tekst. Indsæt den fx i Teams eller Ludus.' : 'Planen kunne ikke kopieres. Brug "Udskriv / gem som PDF" i stedet.');
+            visBesked(ok ? 'Grupperne er kopieret som tekst. Indsæt dem fx i Teams eller Ludus.' : 'Planen kunne ikke kopieres. Brug "Udskriv / gem som PDF" i stedet.');
           }}
         >
           Kopiér som tekst
@@ -41,18 +42,37 @@ export function DelKnapper(props: { klasse: Klasse; plan: Plan }) {
   );
 }
 
+/** Netværksgrupper med makkerpar, i samme farver som i lokalet. */
+export function GruppeOversigt(props: { plan: Plan; navn: (id: string) => string; overskriftNiveau?: 2 | 3 }) {
+  const grupper = useMemo(() => planGrupper(props.plan.lokale, props.plan.placering), [props.plan]);
+  if (grupper.length === 0) return null;
+  return (
+    <ul class="gruppeoversigt" aria-label="Netværksgrupper og makkerpar">
+      {grupper.map((g) => (
+        <li key={g.nr} style={{ background: gruppefarve(g.nr) }}>
+          <h3>Gruppe {g.nr}</h3>
+          {g.par.map((p, i) => (
+            <p key={i}>{p.map(props.navn).join(' og ')}</p>
+          ))}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Fuldskærm til projektor. Esc eller "Luk" lukker. */
 function Tavlevisning(props: { klasse: Klasse; plan: Plan; onLuk: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const lukRef = useRef<HTMLButtonElement>(null);
   const navn = useMemo(() => navneOpslag(props.klasse), [props.klasse]);
-  const [skrift, setSkrift] = useState(() => tavleSkrift(props.plan, navn, window.innerWidth, window.innerHeight));
+  const [visning, setVisning] = useState<'plan' | 'grupper'>('plan');
+  const [str, setStr] = useState({ w: window.innerWidth, h: window.innerHeight });
 
   useEffect(() => {
-    const ny = () => setSkrift(tavleSkrift(props.plan, navn, window.innerWidth, window.innerHeight));
+    const ny = () => setStr({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', ny);
     return () => window.removeEventListener('resize', ny);
-  }, [props.plan, navn]);
+  }, []);
 
   useEffect(() => {
     const forrige = document.activeElement as HTMLElement | null;
@@ -76,22 +96,34 @@ function Tavlevisning(props: { klasse: Klasse; plan: Plan; onLuk: () => void }) 
     };
   }, []);
 
+  const l = props.plan.lokale;
+  const u = Math.floor(Math.min((str.w * 0.96) / l.bredde, (str.h - 90) / l.hoejde));
+
   return (
-    <div class="tavlevisning" ref={ref} style={{ '--tavle-skrift': `${skrift}px` }} role="dialog" aria-modal="true" aria-label={`Bordplan for ${props.klasse.navn} på tavlen`}>
+    <div class="tavlevisning" ref={ref} role="dialog" aria-modal="true" aria-label={`Bordplan for ${props.klasse.navn} på tavlen`}>
       <div class="tavlevisning-hoved">
         <h2>
           {props.klasse.navn} <span class="daempet">{planTitel(props.plan.dato)}</span>
         </h2>
+        <button class="knap" type="button" onClick={() => setVisning(visning === 'plan' ? 'grupper' : 'plan')}>
+          {visning === 'plan' ? 'Vis grupperne' : 'Vis bordplanen'}
+        </button>
         <button ref={lukRef} class="knap" type="button" onClick={props.onLuk}>
           Luk (Esc)
         </button>
       </div>
-      <Lokaletegning lokale={props.plan.lokale} placering={props.plan.placering} navn={navn} klasse="stor" />
+      {visning === 'plan' ? (
+        <Lokaletegning lokale={l} placering={props.plan.placering} navn={navn} klasse="stor" maal={{ u, skrift: u * 0.36, enhed: 'px' }} />
+      ) : (
+        <div class="tavle-grupper">
+          <GruppeOversigt plan={props.plan} navn={navn} />
+        </div>
+      )}
     </div>
   );
 }
 
-/** Arket, der kommer på papir. Usynligt på skærmen. */
+/** Arket, der kommer på papir: side 1 bordplanen, side 2 grupperne. Usynligt på skærmen. */
 export function PrintArk() {
   const [, saet] = useState(0);
   useEffect(() => {
@@ -103,7 +135,6 @@ export function PrintArk() {
       window.removeEventListener('afterprint', efter);
     };
   }, []);
-  // Uden valgt plan (fx Ctrl+P) udskrives den aktive klasses gældende plan.
   let valg = hentUdskrift();
   if (!valg) {
     const d = hentData();
@@ -114,73 +145,26 @@ export function PrintArk() {
   if (!valg) return null;
   const { klasse, plan } = valg;
   const navn = navneOpslag(klasse);
+  const l = plan.lokale;
+  // Siden er 277 × 190 mm; overskriften tager ca. 14 mm.
+  const u = Math.min(277 / l.bredde, 172 / l.hoejde);
+  const titel = `${planTitel(plan.dato)}${l.navn ? `, lokale ${l.navn}` : ''}`;
   return (
-    <div class="print-ark" aria-hidden="true" style={{ '--print-skrift': `${printSkrift(plan, navn)}pt` }}>
-      <div class="print-hoved">
-        <strong>{klasse.navn}</strong>
-        <span>{planTitel(plan.dato)}</span>
-      </div>
-      <Lokaletegning lokale={plan.lokale} placering={plan.placering} navn={navn} klasse="print" />
+    <div class="print-ark" aria-hidden="true">
+      <section class="print-side">
+        <div class="print-hoved">
+          <strong>Siddepladser, {klasse.navn}</strong>
+          <span>{titel}</span>
+        </div>
+        <Lokaletegning lokale={l} placering={plan.placering} navn={navn} klasse="print" maal={{ u, skrift: Math.min(u * 0.34, 9), enhed: 'mm' }} />
+      </section>
+      <section class="print-side">
+        <div class="print-hoved">
+          <strong>Netværksgrupper og makkerpar, {klasse.navn}</strong>
+          <span>{titel}</span>
+        </div>
+        <GruppeOversigt plan={plan} navn={navn} />
+      </section>
     </div>
   );
-}
-
-interface Maal {
-  kolonner: number;
-  raekker: number;
-  pladsKol: number;
-  pladsRaek: number;
-  /** Bredden af det længste navn ved skriftstørrelse 1 (i em). */
-  em: number;
-}
-
-let laerred: HTMLCanvasElement | null = null;
-
-/** Måler navnets bredde i den rigtige skrift (fed Atkinson Hyperlegible). */
-function navnebredde(navn: string): number {
-  laerred ??= document.createElement('canvas');
-  const ctx = laerred.getContext('2d');
-  if (!ctx) return navn.length * 0.6;
-  ctx.font = `700 100px 'Atkinson Hyperlegible', system-ui, sans-serif`;
-  return ctx.measureText(navn).width / 100;
-}
-
-function maal(plan: Plan, navn: (id: string) => string): Maal {
-  const borde = plan.lokale.borde;
-  const maks = Math.max(1, ...borde.map((b) => b.pladser));
-  const pladsKol = maks === 1 ? 1 : maks >= 5 ? 3 : 2;
-  const navne = Object.values(plan.placering).flat().filter((x): x is string => !!x).map(navn);
-  return {
-    kolonner: Math.max(1, ...borde.map((b) => b.kolonne + 1)),
-    raekker: Math.max(1, ...borde.map((b) => b.raekke + 1)),
-    pladsKol,
-    pladsRaek: Math.ceil(maks / pladsKol),
-    em: Math.max(2.5, ...navne.map(navnebredde)),
-  };
-}
-
-/**
- * Største skrift, hvor det længste navn kan være på én linje, og alle
- * rækker kan være i højden. Mål i samme enhed som `bredde` og `hoejde`.
- */
-function passendeSkrift(m: Maal, bredde: number, hoejde: number, gab: number, bordKant: number, pladsKant: number, titel: number): number {
-  const bordB = (bredde - (m.kolonner - 1) * gab) / m.kolonner - 2 * bordKant;
-  const pladsB = (bordB - (m.pladsKol - 1) * bordKant) / m.pladsKol - 2 * pladsKant;
-  const bordH = (hoejde - (m.raekker - 1) * gab) / m.raekker - 2 * bordKant - titel;
-  const pladsH = (bordH - (m.pladsRaek - 1) * bordKant) / m.pladsRaek - 2 * pladsKant;
-  return Math.min(pladsB / (m.em * 1.04), pladsH / 1.2);
-}
-
-/** Skriftstørrelse (pt), så hele lokalet kan være på én A4-side på tværs. */
-export function printSkrift(plan: Plan, navn: (id: string) => string): number {
-  // Siden er 277 × 190 mm. Overskrift og tavle tager ca. 26 mm.
-  const mm = passendeSkrift(maal(plan, navn), 277, 160, 4, 2.6, 2, 5);
-  return Math.floor(Math.max(8, Math.min(32, mm / 0.3528)));
-}
-
-/** Skriftstørrelse (px) til tavlevisning, så alt kan ses uden at rulle. */
-export function tavleSkrift(plan: Plan, navn: (id: string) => string, w: number, h: number): number {
-  const gab = w * 0.012;
-  const px = passendeSkrift(maal(plan, navn), w * 0.96, h * 0.97 - 140, gab, 9, 8, 24);
-  return Math.floor(Math.max(12, Math.min(72, px)));
 }

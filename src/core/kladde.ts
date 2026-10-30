@@ -26,8 +26,7 @@ export function gyldigeLaase(laase: Laas[], lokale: Lokale, elever: { id: ElevId
 export type KladdeResultat = { kladde: Kladde } | { fejl: string };
 
 /** Laver et nyt forslag. Låse fra `laase` (eller klassens faste pladser) respekteres. */
-export function lavKladde(klasse: Klasse, dato: string, laase?: Laas[], seed?: number): KladdeResultat {
-  const lokale = klasse.lokale;
+export function lavKladde(klasse: Klasse, lokale: Lokale | null, dato: string, laase?: Laas[], seed?: number): KladdeResultat {
   if (!lokale) return { fejl: 'Vælg først et lokale.' };
   const brugte = gyldigeLaase(laase ?? klasse.faste, lokale, klasse.elever);
   const fejl = kontrollerInput({ elever: klasse.elever, lokale, laase: brugte });
@@ -83,16 +82,4 @@ export function findPlads(placering: Placering, elevId: ElevId): Plads | null {
 export function manglerIPlan(placering: Placering, elever: { id: ElevId }[]): ElevId[] {
   const placeret = new Set(Object.values(placering).flat());
   return elever.filter((e) => !placeret.has(e.id)).map((e) => e.id);
-}
-
-/**
- * Bygger et nyt lokale, men genbruger bordenes id'er i samme rækkefølge,
- * så faste pladser overlever, når man fx tilføjer et bord.
- */
-export function genbrugBordIder(nyt: Lokale, gammelt: Lokale | null): Lokale {
-  if (!gammelt) return nyt;
-  return {
-    ...nyt,
-    borde: nyt.borde.map((b, i) => (gammelt.borde[i] ? { ...b, id: gammelt.borde[i]!.id } : b)),
-  };
 }

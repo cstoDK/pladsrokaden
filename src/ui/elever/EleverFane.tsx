@@ -5,11 +5,11 @@ import { useState } from 'preact/hooks';
 import { findDubletter, rydNavn } from '../../core/import';
 import { gyldigeLaase } from '../../core/kladde';
 import { foreslaaKoen } from '../../core/koensgaet';
-import { type ElevId, type Klasse, bordNummer, nyId } from '../../core/model';
+import { type ElevId, type Klasse, type Lokale, bordNummer, forresteBorde, nyId } from '../../core/model';
 import { medFortryd, opdaterKlasse } from '../../app/tilstand';
 import { Import } from '../import/Import';
 
-export function EleverFane(props: { klasse: Klasse }) {
+export function EleverFane(props: { klasse: Klasse; lokale: Lokale | null }) {
   const k = props.klasse;
   const [tilfoejer, setTilfoejer] = useState(false);
 
@@ -36,7 +36,7 @@ export function EleverFane(props: { klasse: Klasse }) {
     <div class="smal stak">
       <Elevliste klasse={k} onTilfoej={() => setTilfoejer(true)} />
       <HoldAdskilt klasse={k} />
-      <FastePladser klasse={k} />
+      <FastePladser klasse={k} lokale={props.lokale} />
       <section class="kort" aria-labelledby="slet-titel">
         <h2 id="slet-titel">Slet klassen</h2>
         <p class="daempet">Sletter klassens elever, lokale og alle planer fra denne computer. Du kan fortryde i 10 sekunder bagefter.</p>
@@ -248,13 +248,14 @@ function HoldAdskilt(props: { klasse: Klasse }) {
   );
 }
 
-function FastePladser(props: { klasse: Klasse }) {
+function FastePladser(props: { klasse: Klasse; lokale: Lokale | null }) {
   const k = props.klasse;
   const [elev, setElev] = useState('');
   const [plads, setPlads] = useState('');
   const [fejl, setFejl] = useState<string | null>(null);
-  const lokale = k.lokale;
+  const lokale = props.lokale;
   if (!lokale) return null;
+  const forrest = forresteBorde(lokale);
   const faste = gyldigeLaase(k.faste, lokale, k.elever);
   const optaget = new Set(faste.map((l) => `${l.bordId}#${l.plads}`));
   const navn = (id: string) => k.elever.find((e) => e.id === id)?.navn ?? '';
@@ -315,7 +316,7 @@ function FastePladser(props: { klasse: Klasse }) {
                 return (
                   <option key={v} value={v} disabled={optaget.has(v)}>
                     {pladsTekst(b.id, p)}
-                    {b.raekke < lokale.forresteRaekker ? ' (forrest)' : ''}
+                    {forrest.has(b.id) ? ' (forrest)' : ''}
                   </option>
                 );
               }),

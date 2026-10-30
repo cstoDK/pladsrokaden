@@ -59,6 +59,14 @@ Kontrolleret med axe-core (WCAG 2.0/2.1/2.2 A og AA samt best practice) på alle
 - Reduceret bevægelse: appen har ingen animationer, og `prefers-reduced-motion` slår også overgange fra.
 - Læsbar skrift: Atkinson Hyperlegible (self-hostet), 17 px grundstørrelse.
 
+## Lokaler, netværksgrupper og makkerpar (tilføjet senere)
+
+- **Direkte manipulation:** borde, tavle og mobilskab trækkes på plads med mus eller finger (Pointer Events) og kan flyttes med piletasterne. Ændringer kan fortrydes (knap og Ctrl+Z).
+- **Genkendelse frem for hukommelse:** lokaler vælges efter nummer og huskes med indretningen. Netværksgrupper har hver sin farve og et nummer (G1, G2 ...), så farven ikke er den eneste markering; makkerpar er adskilt af en tydelig streg.
+- **Forebyg fejl:** editoren advarer, når borde står oven i hinanden, når der er for få pladser, og når opstillingen tvinger en elev til at sidde alene.
+- **Synlig status:** "Det kunne ikke undgås" samler problemerne bord for bord under lokalet, og gruppeoversigten står under bordplanen og på printets side 2.
+- **Læsbarhed:** hvert navn får den største skrift, der passer i pladsen, så ét langt navn ikke gør alle navne små.
+
 ## Fundet og rettet i gennemgangen
 
 | Fund | Rettelse |

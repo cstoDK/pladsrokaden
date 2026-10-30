@@ -1,7 +1,7 @@
 // Handlinger, der bruges flere steder: sikkerhedskopi, demoklasse, udskrift.
 
 import { iDag } from '../core/dato';
-import { lavDemoKlasse } from '../core/demo';
+import { lavDemo } from '../core/demo';
 import { filnavn, flet, fraFil, tilFil } from '../core/fil';
 import { type Klasse, type Plan } from '../core/model';
 import { hentData, medFortryd, opdater, visBesked } from './tilstand';
@@ -29,8 +29,9 @@ export async function hentSikkerhedskopi(fil: File): Promise<void> {
   }
   const n = r.klasser.length;
   medFortryd(`${n} ${n === 1 ? 'klasse' : 'klasser'} er hentet fra filen.`, (d) => {
-    const ny = flet(d, r.klasser);
+    const ny = flet(d, r);
     d.klasser = ny.klasser;
+    d.lokaler = ny.lokaler;
     d.aktivKlasseId = r.klasser[0]?.id ?? ny.aktivKlasseId;
   });
 }
@@ -41,16 +42,18 @@ export function aabnDemo(): void {
     opdater((d) => void (d.aktivKlasseId = findes.id));
     return;
   }
-  const k = lavDemoKlasse();
+  const { klasse, lokale } = lavDemo();
   opdater((d) => {
-    d.klasser.push(k);
-    d.aktivKlasseId = k.id;
+    d.lokaler.push(lokale);
+    d.klasser.push(klasse);
+    d.aktivKlasseId = klasse.id;
   });
 }
 
 export function sletAlt(): void {
   medFortryd('Alle klasser er slettet fra denne computer.', (d) => {
     d.klasser = [];
+    d.lokaler = [];
     d.aktivKlasseId = null;
   });
 }
