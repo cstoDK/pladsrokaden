@@ -460,13 +460,15 @@ function OpdaterFraListe(props: { klasse: Klasse; onFaerdig: () => void }) {
         {r.begge.length} af {k.elever.length} elever i klassen står på listen.
         {nyeHold > 0 && ` GF-hold bliver sat for ${nyeHold}.`}
         {nyeKoen > 0 && ` Køn bliver sat for ${nyeKoen}, der manglede det.`}
-        {ingenForskelle ? ' Listen og klassen stemmer overens.' : ' Der er forskelle; se herunder.'}
+        {ingenForskelle
+          ? ' Listen og klassen stemmer overens.'
+          : ' Ingen bliver tilføjet eller fjernet, medmindre du sætter flueben herunder.'}
       </p>
 
       {r.kunPaaListen.length > 0 && (
         <>
           <h3>På listen, men ikke i klassen</h3>
-          <p class="hjaelp">Er det nye elever, så sæt flueben, så bliver de tilføjet.</p>
+          <p class="hjaelp">De bliver ikke tilføjet, medmindre du sætter flueben. Gør det kun, hvis det er nye elever.</p>
           <ul class="parliste">
             {r.kunPaaListen.map((n, i) => (
               <li key={i}>
@@ -484,13 +486,16 @@ function OpdaterFraListe(props: { klasse: Klasse; onFaerdig: () => void }) {
       {r.kunIKlassen.length > 0 && (
         <>
           <h3>I klassen, men ikke på listen</h3>
-          <p class="hjaelp">Måske er eleven stoppet, eller navnet er stavet anderledes. Sæt flueben for at fjerne eleven fra klassen.</p>
+          <p class="hjaelp">
+            De bliver i klassen og beholder deres GF-hold (eller et tomt), medmindre du sætter flueben. Er listen ældre end klassen,
+            eller er navnet stavet anderledes, skal du ikke gøre noget. Sæt kun flueben, hvis eleven er stoppet.
+          </p>
           <ul class="parliste">
             {r.kunIKlassen.map((id) => (
               <li key={id}>
                 <label class="afkryds" style={{ margin: 0, flex: 1 }}>
                   <input type="checkbox" checked={fjern.has(id)} onChange={() => setFjern(skift(fjern, id))} />
-                  Fjern {navn(id)}
+                  Fjern {navn(id)} fra klassen
                 </label>
               </li>
             ))}
