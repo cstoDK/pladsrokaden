@@ -54,7 +54,7 @@ export function Lokaletegning(props: Props) {
       </div>
       <div
         class="lokale-gitter"
-        style={{ gridTemplateColumns: `repeat(${kolonner}, minmax(min-content, 1fr))`, gridTemplateRows: `repeat(${raekker}, auto)` }}
+        style={{ '--kolonner': String(kolonner), '--raekker': String(raekker) }}
       >
         {lokale.borde.map((bord, bi) => {
           const forrest = erForrest(bord, lokale);

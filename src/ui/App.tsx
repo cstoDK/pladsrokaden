@@ -1,10 +1,12 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { nyId, nyKlasse } from '../core/model';
 import { harLagerFejl, opdater, useData } from '../app/tilstand';
 import { Beskeder, Trinviser } from './Faelles';
 import { Import } from './import/Import';
 import { type KontrolRaekke } from './import/Kontrol';
 import { KlasseVisning } from './Klasse';
+import { PrintArk } from './plan/Deling';
+import { aabnDemo, gemSikkerhedskopi, hentSikkerhedskopi, sletAlt } from '../app/handlinger';
 
 export function App() {
   const data = useData();
@@ -52,6 +54,7 @@ export function App() {
               </button>
             </div>
           )}
+          <Menu harKlasser={data.klasser.length > 0} />
         </div>
       </header>
       <main id="indhold" tabIndex={-1}>
@@ -64,6 +67,7 @@ export function App() {
         {indhold}
       </main>
       <Beskeder />
+      <PrintArk />
     </>
   );
 }
@@ -79,9 +83,17 @@ function Velkomst(props: { onStart: () => void }) {
         <li>kønnene blandes ved bordene.</li>
       </ul>
       <p>Alt bliver på din egen computer. Intet sendes nogen steder hen.</p>
-      <button class="knap knap-primaer knap-stor" type="button" onClick={props.onStart}>
-        Opret din første klasse
-      </button>
+      <div class="raekke">
+        <button class="knap knap-primaer knap-stor" type="button" onClick={props.onStart}>
+          Opret din første klasse
+        </button>
+        <button class="knap knap-stor" type="button" onClick={aabnDemo}>
+          Se en demoklasse
+        </button>
+      </div>
+      <p class="hjaelp" style={{ marginTop: '1.5rem' }}>
+        Har du brugt Pladsrokaden på en anden computer? Vælg "Hent sikkerhedskopi" i menuen øverst til højre.
+      </p>
     </section>
   );
 }
@@ -139,6 +151,84 @@ function NyKlasse(props: { onFaerdig: () => void; kanAnnullere: boolean }) {
         onGem={gem}
         onAnnuller={props.kanAnnullere ? props.onFaerdig : undefined}
       />
+    </div>
+  );
+}
+
+function Menu(props: { harKlasser: boolean }) {
+  const [aaben, setAaben] = useState(false);
+  const rod = useRef<HTMLDivElement>(null);
+  const knap = useRef<HTMLButtonElement>(null);
+  const fil = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!aaben) return;
+    const klik = (e: MouseEvent) => {
+      if (!rod.current?.contains(e.target as Node)) setAaben(false);
+    };
+    const tast = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setAaben(false);
+        knap.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', klik);
+    document.addEventListener('keydown', tast);
+    rod.current?.querySelector<HTMLButtonElement>('.menu-liste button')?.focus();
+    return () => {
+      document.removeEventListener('mousedown', klik);
+      document.removeEventListener('keydown', tast);
+    };
+  }, [aaben]);
+
+  const punkt = (tekst: string, handling: () => void, fare = false) => (
+    <li>
+      <button
+        type="button"
+        class={`knap knap-tekst${fare ? ' knap-fare' : ''}`}
+        onClick={() => {
+          setAaben(false);
+          handling();
+        }}
+      >
+        {tekst}
+      </button>
+    </li>
+  );
+
+  return (
+    <div class="menu" ref={rod}>
+      <button ref={knap} class="knap" type="button" aria-expanded={aaben} aria-controls="hovedmenu" onClick={() => setAaben(!aaben)}>
+        Menu
+      </button>
+      <input
+        ref={fil}
+        type="file"
+        accept=".json,application/json"
+        class="skjult"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => {
+          const f = e.currentTarget.files?.[0];
+          e.currentTarget.value = '';
+          if (f) void hentSikkerhedskopi(f);
+        }}
+      />
+      {aaben && (
+        <ul class="menu-liste" id="hovedmenu">
+          {props.harKlasser && punkt('Gem sikkerhedskopi', gemSikkerhedskopi)}
+          {punkt('Hent sikkerhedskopi', () => fil.current?.click())}
+          {punkt('Se demoklassen', aabnDemo)}
+          {props.harKlasser && (
+            <>
+              <li>
+                <hr />
+              </li>
+              {punkt('Slet alt', sletAlt, true)}
+            </>
+          )}
+        </ul>
+      )}
     </div>
   );
 }

@@ -5,15 +5,17 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { type Klasse } from '../core/model';
 import { opdaterKlasse, visBesked } from '../app/tilstand';
 import { EleverFane } from './elever/EleverFane';
+import { HistorikFane } from './historik/HistorikFane';
 import { Trinviser } from './Faelles';
 import { LokaleEditor } from './lokale/LokaleEditor';
 import { PlanFane } from './plan/PlanFane';
 
-type Fane = 'plan' | 'elever' | 'lokale';
+type Fane = 'plan' | 'elever' | 'lokale' | 'historik';
 const FANER: { id: Fane; navn: string }[] = [
   { id: 'plan', navn: 'Plan' },
   { id: 'elever', navn: 'Elever' },
   { id: 'lokale', navn: 'Lokale' },
+  { id: 'historik', navn: 'Historik' },
 ];
 
 export function KlasseVisning(props: { klasse: Klasse }) {
@@ -55,6 +57,11 @@ export function KlasseVisning(props: { klasse: Klasse }) {
 
   return (
     <div>
+      {k.erDemo && (
+        <p class="demo-banner">
+          Eleverne i demoklassen er opdigtede. Prøv at lave en ny plan og flytte rundt. Du kan slette klassen under Elever.
+        </p>
+      )}
       <nav class="faner" aria-label={`Klasse ${k.navn}`}>
         {FANER.map((f) => (
           <button key={f.id} type="button" class="fane" aria-current={fane === f.id ? 'page' : undefined} onClick={() => setFane(f.id)}>
@@ -64,6 +71,7 @@ export function KlasseVisning(props: { klasse: Klasse }) {
       </nav>
       {fane === 'plan' && <PlanFane key={k.id} klasse={k} onRetLokale={() => setFane('lokale')} />}
       {fane === 'elever' && <EleverFane key={k.id} klasse={k} />}
+      {fane === 'historik' && <HistorikFane key={k.id} klasse={k} />}
       {fane === 'lokale' && (
         <div>
           <h1>Lokalet for {k.navn}</h1>

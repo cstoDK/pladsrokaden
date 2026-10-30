@@ -7,6 +7,9 @@ import { type Plads, byt, lavKladde, manglerIPlan, skiftLaas } from '../../core/
 import { type Klasse, type Kladde } from '../../core/model';
 import { medFortryd, opdaterKlasse, visBesked } from '../../app/tilstand';
 import { Lokaletegning } from './Lokaletegning';
+import { DelKnapper } from './Deling';
+import { boerTageSikkerhedskopi, gemSikkerhedskopi } from '../../app/handlinger';
+import { hentData } from '../../app/tilstand';
 
 export function PlanFane(props: { klasse: Klasse; foersteGang?: boolean; onRetLokale: () => void }) {
   const k = props.klasse;
@@ -75,10 +78,23 @@ function GemtPlan(props: { klasse: Klasse }) {
     <>
       {mangler.length > 0 && (
         <p class="meddelelse meddelelse-bemaerk">
-          {mangler.map(navn).join(', ')} {mangler.length === 1 ? 'er' : 'er'} ikke med i denne plan. Lav en ny plan for at få{' '}
+          {mangler.map(navn).join(', ')} er ikke med i denne plan. Lav en ny plan for at få{' '}
           {mangler.length === 1 ? 'eleven' : 'dem'} med.
         </p>
       )}
+      {!k.erDemo && boerTageSikkerhedskopi() && (
+        <div class="meddelelse meddelelse-bemaerk raekke">
+          <span style={{ flex: '1 1 18rem' }}>
+            {hentData().sidstEksporteret
+              ? 'Det er over 14 dage siden, du sidst gemte en sikkerhedskopi.'
+              : 'Dine planer ligger kun i denne browser. Gem en sikkerhedskopi, fx på skolens OneDrive, så du ikke mister dem.'}
+          </span>
+          <button class="knap" type="button" onClick={gemSikkerhedskopi}>
+            Gem sikkerhedskopi
+          </button>
+        </div>
+      )}
+      <DelKnapper klasse={k} plan={plan} />
       <Statusliste status={f.status} />
       <Lokaletegning lokale={plan.lokale} placering={plan.placering} navn={navn} />
     </>
