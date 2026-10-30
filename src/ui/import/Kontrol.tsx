@@ -15,6 +15,8 @@ export interface KontrolRaekke {
   koen: Koen;
   /** Køn kunne ikke afgøres ud fra navnet, så læreren skal tage stilling. */
   tjekKoen?: boolean;
+  /** Grundforløbshold, fx "GF02". */
+  hold?: string;
 }
 
 let taeller = 0;
@@ -143,6 +145,7 @@ export function Kontrol(props: Props) {
               <span class="nr" aria-hidden="true">
                 {i + 1}
               </span>
+              <span class="navnfelt">
               <input
                 type="text"
                 value={r.navn}
@@ -153,6 +156,8 @@ export function Kontrol(props: Props) {
                 spellcheck={false}
                 onInput={(e) => opdater(r.noegle, { navn: e.currentTarget.value })}
               />
+              {r.hold && <span class="hold-maerke" title="Grundforløbshold">{r.hold}</span>}
+              </span>
               <span
                 class={`koenvalg${tjek ? ' tjek' : ''}`}
                 role="group"

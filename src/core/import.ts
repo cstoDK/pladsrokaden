@@ -11,6 +11,8 @@ export interface UdtrukketElev {
   /** Højst to bogstaver af efternavnet. Bruges kun til dubletter og gemmes aldrig. */
   efternavnStart?: string;
   koen: Koen;
+  /** Grundforløbshold, fx "GF02". */
+  hold?: string;
 }
 
 export interface Udtraek {
@@ -34,8 +36,17 @@ const STOPORD = new Set(
     'college', 'business', 'kontaktlærer', 'teamleder', 'mentor', 'studievejleder', 'tilmeldt', 'startdato',
     'slutdato', 'dato', 'uddannelse', 'skole', 'afdeling', 'periode', 'kommentar', 'note', 'noter', 'valgt',
     'kvinde', 'mand', 'pige', 'dreng', 'kvinder', 'mænd', 'piger', 'drenge', 'first', 'last', 'name', 'gender',
+    'sprog', 'fremmedsprog', 'valgfag', 'fag', 'niveau', 'spansk', 'kinesisk', 'tysk', 'fransk', 'engelsk', 'italiensk',
+    'arabisk', 'japansk', 'latin', 'russisk', 'dansk', 'matematik', 'samfundsfag', 'afsætning', 'virksomhedsøkonomi',
+    'erhvervsøkonomi', 'informatik', 'grundforløb', 'grundforløbshold', 'gf-klasse', 'kursistnr', 'cpr',
   ],
 );
+
+// Fag og sprog, der kan stå sidst i en linje (fx "Ida Hansen K Spansk").
+const FAGORD = new Set([
+  'spansk', 'kinesisk', 'tysk', 'fransk', 'engelsk', 'italiensk', 'arabisk', 'japansk', 'latin', 'russisk', 'dansk',
+  'matematik', 'samfundsfag', 'afsætning', 'virksomhedsøkonomi', 'erhvervsøkonomi', 'informatik',
+]);
 
 // Statusord, der betyder, at rækken ikke er en aktiv elev.
 const UDMELDT = new Set(['udmeldt', 'afmeldt', 'inaktiv', 'udskrevet']);
@@ -61,7 +72,17 @@ export function kunFornavn(navn: string): string {
   if (ord.length === 2 && FORBOGSTAV_ORD.test(ord[1]!)) return `${ord[0]} ${ord[1]}`;
   return ord[0]!;
 }
-const HEADER: Record<string, 'fornavn' | 'efternavn' | 'navn' | 'koen'> = {
+/**
+ * Grundforløbshold i kort form: "1.GF02-DIG", "GF 2" og "gf02" bliver alle
+ * til "GF02". Andet end et GF-nummer kasseres (kun det, der skal bruges).
+ */
+export function normaliserHold(tekst: string): string | undefined {
+  const m = tekst.match(/G\s*F\s*-?\s*0*(\d{1,2})(?!\d)/i);
+  return m ? `GF${m[1]!.padStart(2, '0')}` : undefined;
+}
+
+const HEADER: Record<string, 'fornavn' | 'efternavn' | 'navn' | 'koen' | 'hold'> = {
+  'gf-klasse': 'hold', 'gf klasse': 'hold', 'gf-hold': 'hold', 'gf hold': 'hold', gf: 'hold', grundforløb: 'hold', grundforløbshold: 'hold',
   fornavn: 'fornavn', fornavne: 'fornavn', 'first name': 'fornavn', kaldenavn: 'fornavn',
   efternavn: 'efternavn', efternavne: 'efternavn', 'last name': 'efternavn',
   navn: 'navn', elev: 'navn', elevnavn: 'navn', kursist: 'navn', kursistnavn: 'navn', 'fulde navn': 'navn', name: 'navn', elever: 'navn',
@@ -257,10 +278,11 @@ interface Kolonner {
   efternavn: number;
   navn: number[];
   koen: number;
+  hold: number;
 }
 
 function findKolonner(raekker: string[][]): Kolonner {
-  const k: Kolonner = { headerRaekke: -1, fornavn: -1, efternavn: -1, navn: [], koen: -1 };
+  const k: Kolonner = { headerRaekke: -1, fornavn: -1, efternavn: -1, navn: [], koen: -1, hold: -1 };
   for (let r = 0; r < Math.min(raekker.length, 8); r++) {
     const celler = raekker[r]!;
     if (celler.length < 2) continue;
@@ -274,6 +296,7 @@ function findKolonner(raekker: string[][]): Kolonner {
       else if (t === 'efternavn' && k.efternavn < 0) k.efternavn = i;
       else if (t === 'navn') k.navn.push(i);
       else if (t === 'koen' && k.koen < 0) k.koen = i;
+      else if (t === 'hold' && k.hold < 0) k.hold = i;
     });
     if (k.fornavn >= 0 || k.navn.length > 0) return k;
   }
@@ -293,14 +316,22 @@ function findKolonner(raekker: string[][]): Kolonner {
     const medKomma = navnekolonner.find((i) => fler.some((c) => (c[i] ?? '').includes(',')));
     if (medKomma !== undefined) k.navn = [medKomma];
     else {
+      // Fornavn og efternavn står normalt lige efter hinanden.
       k.fornavn = navnekolonner[0]!;
-      k.efternavn = navnekolonner[navnekolonner.length - 1]!;
+      k.efternavn = navnekolonner[1]!;
     }
   } else k.navn = navnekolonner;
   return k;
 }
 
 function fraRaekke(celler: string[], k: Kolonner): UdtrukketElev | null {
+  const e = fraRaekkeUdenHold(celler, k);
+  if (!e) return null;
+  const hold = k.hold >= 0 ? normaliserHold(celler[k.hold] ?? '') : celler.map(normaliserHold).find(Boolean);
+  return hold ? { ...e, hold } : e;
+}
+
+function fraRaekkeUdenHold(celler: string[], k: Kolonner): UdtrukketElev | null {
   if (celler.some((c) => UDMELDT.has(c.toLowerCase()))) return null;
   let koen: Koen = null;
   if (k.koen >= 0) koen = KOEN_ORD[(celler[k.koen] ?? '').toLowerCase()] ?? null;
@@ -333,9 +364,19 @@ function fraRaekke(celler: string[], k: Kolonner): UdtrukketElev | null {
 }
 
 function fraFritekst(linje: string): UdtrukketElev | null {
+  const e = fraFritekstUdenHold(linje);
+  const hold = normaliserHold(linje);
+  return e && hold ? { ...e, hold } : e;
+}
+
+function fraFritekstUdenHold(linje: string): UdtrukketElev | null {
   const ord0 = linje.toLowerCase().split(/[\s,;:|]+/);
   if (ord0.some((o) => UDMELDT.has(o))) return null;
   let tekst = rensCelle(linje);
+  // Fag og sprog sidst i linjen fjernes, så køn og navn kan læses.
+  const ord = tekst.split(' ');
+  while (ord.length > 1 && FAGORD.has(ord[ord.length - 1]!.toLowerCase())) ord.pop();
+  tekst = ord.join(' ');
   let koen: Koen = null;
   // Køn som sidste ord: "Ida Hansen P", "Ida Hansen, pige"
   const m = tekst.match(/^(.*\S)[\s,]+(P|D|K|M|pige|dreng|kvinde|mand)$/i);

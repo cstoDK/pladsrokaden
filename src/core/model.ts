@@ -1,5 +1,6 @@
-// Datamodellen. Bevidst minimal: kun fornavn, køn, bordplaner og
-// "hold adskilt"-par. Ingen efternavne, numre eller fritekst om elever.
+// Datamodellen. Bevidst minimal: kun fornavn, køn, grundforløbshold,
+// bordplaner og "hold adskilt"-par. Ingen efternavne, numre eller fritekst
+// om elever.
 
 export type ElevId = string;
 export type BordId = string;
@@ -12,6 +13,8 @@ export interface Elev {
   /** Fornavn, evt. med forbogstav i efternavnet ved dubletter ("Ida H."). */
   navn: string;
   koen: Koen;
+  /** Grundforløbshold, fx "GF02". Bruges kun til at blande eleverne på tværs af holdene. */
+  hold?: string | null;
 }
 
 /**

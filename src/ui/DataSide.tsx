@@ -33,6 +33,9 @@ export function DataSide(props: { onTilbage: () => void }) {
           navneliste, der følger med appen, og læreren retter forslaget. Navne, der bruges til begge køn, eller som ikke står på
           listen, gættes ikke.
         </li>
+        <li>
+          Grundforløbshold i kort form (fx GF02), hvis listen har det. Det bruges kun til at blande eleverne på tværs af holdene.
+        </li>
         <li>Lokaler: lokalenummer (fx 007) og indretning, dvs. bordenes placering, tavlen og mobilskabet.</li>
         <li>Bordplanerne med dato. Netværksgrupper og makkerpar gemmes ikke for sig; de følger af, hvor eleverne sidder.</li>
         <li>Par af elever, der skal holdes adskilt, og elever med fast plads. Der gemmes ingen begrundelse.</li>
@@ -41,7 +44,10 @@ export function DataSide(props: { onTilbage: () => void }) {
 
       <h2>Hvad gemmes aldrig</h2>
       <ul>
-        <li>Efternavne (ud over et forbogstav ved dubletter), elevnumre, kursistnumre, CPR-numre, fødselsdatoer, e-mails og adresser.</li>
+        <li>
+          Efternavne og mellemnavne (ud over et forbogstav ved dubletter), elevnumre, kursistnumre, CPR-numre, fødselsdatoer, e-mails,
+          adresser og valgfag eller sprog.
+        </li>
         <li>Indsat tekst og skærmbilleder fra Ludus, Lectio eller andre systemer.</li>
         <li>Fritekst om elever. Der findes ingen felter til noter eller begrundelser.</li>
       </ul>

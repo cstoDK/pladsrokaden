@@ -2,7 +2,10 @@
 // "hold adskilt"-par, faste pladser og sletning af klassen.
 
 import { useState } from 'preact/hooks';
-import { findDubletter, rydNavn } from '../../core/import';
+import { findDubletter, normaliserHold, rydNavn } from '../../core/import';
+import { sammenlign } from '../../core/sammenlign';
+import { Hent } from '../import/Import';
+import { type Udtraek } from '../../core/import';
 import { gyldigeLaase } from '../../core/kladde';
 import { foreslaaKoen } from '../../core/koensgaet';
 import { type ElevId, type Klasse, type Lokale, bordNummer, forresteBorde, nyId } from '../../core/model';
@@ -12,6 +15,16 @@ import { Import } from '../import/Import';
 export function EleverFane(props: { klasse: Klasse; lokale: Lokale | null }) {
   const k = props.klasse;
   const [tilfoejer, setTilfoejer] = useState(false);
+  const [sammenligner, setSammenligner] = useState(false);
+
+  if (sammenligner) {
+    return (
+      <div class="smal">
+        <h1>Opdatér {k.navn} fra klasseliste</h1>
+        <OpdaterFraListe klasse={k} onFaerdig={() => setSammenligner(false)} />
+      </div>
+    );
+  }
 
   if (tilfoejer) {
     return (
@@ -22,7 +35,7 @@ export function EleverFane(props: { klasse: Klasse; lokale: Lokale | null }) {
           onAnnuller={() => setTilfoejer(false)}
           onGem={(r) => {
             opdaterKlasse(k.id, (x) => {
-              x.elever.push(...r.map((e) => ({ id: nyId(), navn: e.navn, koen: e.koen })));
+              x.elever.push(...r.map((e) => ({ id: nyId(), navn: e.navn, koen: e.koen, ...(e.hold ? { hold: e.hold } : {}) })));
               x.kladde = null;
             });
             setTilfoejer(false);
@@ -34,7 +47,7 @@ export function EleverFane(props: { klasse: Klasse; lokale: Lokale | null }) {
 
   return (
     <div class="smal stak">
-      <Elevliste klasse={k} onTilfoej={() => setTilfoejer(true)} />
+      <Elevliste klasse={k} onTilfoej={() => setTilfoejer(true)} onSammenlign={() => setSammenligner(true)} />
       <HoldAdskilt klasse={k} />
       <FastePladser klasse={k} lokale={props.lokale} />
       <section class="kort" aria-labelledby="slet-titel">
@@ -57,7 +70,7 @@ export function EleverFane(props: { klasse: Klasse; lokale: Lokale | null }) {
   );
 }
 
-function Elevliste(props: { klasse: Klasse; onTilfoej: () => void }) {
+function Elevliste(props: { klasse: Klasse; onTilfoej: () => void; onSammenlign: () => void }) {
   const k = props.klasse;
   const dubletter = findDubletter(k.elever.map((e) => e.navn));
   const piger = k.elever.filter((e) => e.koen === 'P').length;
@@ -81,6 +94,9 @@ function Elevliste(props: { klasse: Klasse; onTilfoej: () => void }) {
         <h1 id="elever-titel" style={{ margin: 0, marginRight: 'auto' }}>
           Elever i {k.navn}
         </h1>
+        <button class="knap" type="button" onClick={props.onSammenlign}>
+          Opdatér fra klasseliste
+        </button>
         <button class="knap knap-primaer" type="button" onClick={props.onTilfoej}>
           Tilføj elever
         </button>
@@ -101,7 +117,10 @@ function Elevliste(props: { klasse: Klasse; onTilfoej: () => void }) {
           </span>
         )}
       </p>
-      <p class="hjaelp">Ændringer gemmes med det samme. P er pige, D er dreng.</p>
+      <p class="hjaelp">
+        Ændringer gemmes med det samme. P er pige, D er dreng. GF er grundforløbsholdet; det bruges til at blande eleverne på tværs
+        af holdene. "Opdatér fra klasseliste" sætter GF-hold for alle på én gang og viser forskelle mellem listen og klassen.
+      </p>
       {k.elever.length - piger - drenge > 0 && (
         <p>
           <button
@@ -122,7 +141,7 @@ function Elevliste(props: { klasse: Klasse; onTilfoej: () => void }) {
           </button>
         </p>
       )}
-      <ol class="kontrolliste">
+      <ol class="kontrolliste med-hold">
         {k.elever.map((e, i) => {
           const dublet = dubletter.has(i);
           return (
@@ -171,6 +190,27 @@ function Elevliste(props: { klasse: Klasse; onTilfoej: () => void }) {
                   </button>
                 ))}
               </span>
+              <input
+                key={`gf-${e.hold ?? ''}`}
+                type="text"
+                class="hold-felt"
+                defaultValue={e.hold ?? ''}
+                placeholder="GF"
+                maxLength={6}
+                aria-label={`GF-hold for ${e.navn}`}
+                autocomplete="off"
+                onChange={(ev) => {
+                  const raa = ev.currentTarget.value.trim();
+                  const hold = raa ? normaliserHold(raa) ?? normaliserHold(`GF${raa}`) : undefined;
+                  ev.currentTarget.value = hold ?? '';
+                  opdaterKlasse(k.id, (x) => {
+                    const y = x.elever.find((z) => z.id === e.id);
+                    if (!y) return;
+                    if (hold) y.hold = hold;
+                    else delete y.hold;
+                  });
+                }}
+              />
               <button type="button" class="knap knap-tekst fjern" aria-label={`Fjern ${e.navn}`} onClick={() => fjern(e.id)}>
                 Fjern
               </button>
@@ -351,5 +391,121 @@ function ElevVaelger(props: { id: string; label: string; vaerdi: string; onVaelg
           ))}
       </select>
     </div>
+  );
+}
+
+/**
+ * Opdatér fra klasseliste: læreren indsætter listen igen (fx med GF-hold),
+ * og appen viser, hvem der findes begge steder, kun på listen og kun i
+ * klassen. Intet ændres, før læreren trykker "Gem ændringer".
+ */
+function OpdaterFraListe(props: { klasse: Klasse; onFaerdig: () => void }) {
+  const k = props.klasse;
+  const [udtraek, setUdtraek] = useState<Udtraek | null>(null);
+  const [tilfoej, setTilfoej] = useState<Set<number>>(new Set());
+  const [fjern, setFjern] = useState<Set<string>>(new Set());
+
+  if (!udtraek) {
+    return (
+      <Hent
+        titel="Indsæt den nyeste klasseliste"
+        tekst="Kopiér klasselisten fra Ludus eller Lectio med kolonnen GF-Klasse, eller tag et skærmbillede. Appen sammenligner listen med klassen. Intet ændres, før du har set forskellene."
+        onUdtraek={setUdtraek}
+        onTilbage={props.onFaerdig}
+        tilbageTekst="Annullér"
+      />
+    );
+  }
+
+  const r = sammenlign(k.elever, udtraek.elever);
+  const navn = (id: string) => k.elever.find((e) => e.id === id)?.navn ?? '';
+  const nyeHold = r.begge.filter((m) => m.hold && k.elever.find((e) => e.id === m.elevId)?.hold !== m.hold).length;
+  const nyeKoen = r.begge.filter((m) => m.koen && !k.elever.find((e) => e.id === m.elevId)?.koen).length;
+  const skift = <T,>(saet: Set<T>, v: T) => {
+    const ny = new Set(saet);
+    if (ny.has(v)) ny.delete(v);
+    else ny.add(v);
+    return ny;
+  };
+
+  function gem() {
+    medFortryd('Klassen er opdateret fra klasselisten.', (d) => {
+      const x = d.klasser.find((y) => y.id === k.id);
+      if (!x) return;
+      for (const m of r.begge) {
+        const e = x.elever.find((y) => y.id === m.elevId);
+        if (!e) continue;
+        if (m.hold) e.hold = m.hold;
+        if (m.koen && !e.koen) e.koen = m.koen;
+      }
+      for (const i of tilfoej) {
+        const n = r.kunPaaListen[i]!;
+        x.elever.push({ id: nyId(), navn: n.navn, koen: n.koen, ...(n.hold ? { hold: n.hold } : {}) });
+      }
+      if (fjern.size > 0) {
+        x.elever = x.elever.filter((e) => !fjern.has(e.id));
+        x.holdAdskilt = x.holdAdskilt.filter(([a, b]) => !fjern.has(a) && !fjern.has(b));
+        x.faste = x.faste.filter((l) => !fjern.has(l.elevId));
+      }
+      if (tilfoej.size > 0 || fjern.size > 0) x.kladde = null;
+    });
+    props.onFaerdig();
+  }
+
+  const ingenForskelle = r.kunPaaListen.length === 0 && r.kunIKlassen.length === 0;
+  return (
+    <section class="kort" aria-labelledby="sammenlign-titel">
+      <h2 id="sammenlign-titel">Sammenligning</h2>
+      <p class={`meddelelse ${ingenForskelle ? 'meddelelse-ok' : 'meddelelse-bemaerk'}`} role="status">
+        {r.begge.length} af {k.elever.length} elever i klassen står på listen.
+        {nyeHold > 0 && ` GF-hold bliver sat for ${nyeHold}.`}
+        {nyeKoen > 0 && ` Køn bliver sat for ${nyeKoen}, der manglede det.`}
+        {ingenForskelle ? ' Listen og klassen stemmer overens.' : ' Der er forskelle; se herunder.'}
+      </p>
+
+      {r.kunPaaListen.length > 0 && (
+        <>
+          <h3>På listen, men ikke i klassen</h3>
+          <p class="hjaelp">Er det nye elever, så sæt flueben, så bliver de tilføjet.</p>
+          <ul class="parliste">
+            {r.kunPaaListen.map((n, i) => (
+              <li key={i}>
+                <label class="afkryds" style={{ margin: 0, flex: 1 }}>
+                  <input type="checkbox" checked={tilfoej.has(i)} onChange={() => setTilfoej(skift(tilfoej, i))} />
+                  Tilføj {n.navn}
+                  {n.hold ? ` (${n.hold})` : ''}
+                </label>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {r.kunIKlassen.length > 0 && (
+        <>
+          <h3>I klassen, men ikke på listen</h3>
+          <p class="hjaelp">Måske er eleven stoppet, eller navnet er stavet anderledes. Sæt flueben for at fjerne eleven fra klassen.</p>
+          <ul class="parliste">
+            {r.kunIKlassen.map((id) => (
+              <li key={id}>
+                <label class="afkryds" style={{ margin: 0, flex: 1 }}>
+                  <input type="checkbox" checked={fjern.has(id)} onChange={() => setFjern(skift(fjern, id))} />
+                  Fjern {navn(id)}
+                </label>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      <div class="handlingsbar fast">
+        <button class="knap knap-primaer knap-stor" type="button" onClick={gem}>
+          Gem ændringer
+        </button>
+        <button class="knap knap-tekst" type="button" onClick={props.onFaerdig}>
+          Annullér
+        </button>
+      </div>
+    </section>
   );
 }

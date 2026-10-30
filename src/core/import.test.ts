@@ -1,6 +1,6 @@
 // Alle navne, numre og adresser herunder er opdigtede.
 import { describe, expect, it } from 'vitest';
-import { findDubletter, kunFornavn, navngivDubletter, retOcrTekst, rydNavn, udtraekFraLinjer, udtraekFraTekst } from './import';
+import { findDubletter, kunFornavn, normaliserHold, navngivDubletter, retOcrTekst, rydNavn, udtraekFraLinjer, udtraekFraTekst } from './import';
 
 const fornavne = (t: string) => udtraekFraTekst(t).elever.map((e) => e.fornavn);
 
@@ -109,6 +109,34 @@ describe('udtraekFraTekst: separate kolonner og køn', () => {
   it('køn som ord i en kolonne uden overskrift', () => {
     const r = udtraekFraTekst('Ida Testesen\tpige\t1x\nMalte Jensen\tdreng\t1x');
     expect(r.elever.map((e) => e.koen)).toEqual(['P', 'D']);
+  });
+});
+
+describe('grundforløbshold', () => {
+  it('genkender GF-kolonnen og kasserer kursistnr., sprog og efternavn', () => {
+    // Opbygning som en klasseliste fra Ludus; alle navne er opdigtede.
+    const tekst = [
+      'Klasse\tGF-Klasse\tKursistnr.\t2. fremmedsprog\tFornavn\tEfternavn\tKøn\tSprog',
+      '1c\t1.GF02-DIG\t52812\tl26spa01\tIda Marie Skov\tTestesen\tK\tSpansk',
+      '1c\t1.GF01-DIG\t53008\tl26kia01\tMalte\tOpdigt\tM\tKinesisk',
+      '1c\t1.GF07-DIG\t72164\tl26kia01\tSara\tEksempel\tK\tKinesisk',
+    ].join('\n');
+    const r = udtraekFraTekst(tekst);
+    expect(r.elever).toEqual([
+      { fornavn: 'Ida', efternavnStart: 'Te', koen: 'P', hold: 'GF02' },
+      { fornavn: 'Malte', efternavnStart: 'Op', koen: 'D', hold: 'GF01' },
+      { fornavn: 'Sara', efternavnStart: 'Ek', koen: 'P', hold: 'GF07' },
+    ]);
+    expect(JSON.stringify(r)).not.toMatch(/52812|Spansk|Kinesisk|Skov|Testesen/);
+  });
+  it('normaliserer forskellige skrivemåder og afviser andet', () => {
+    expect(['1.GF02-DIG', 'GF 2', 'gf02', 'GF-11', '1.GF03-DIG '].map(normaliserHold)).toEqual(['GF02', 'GF02', 'GF02', 'GF11', 'GF03']);
+    expect(normaliserHold('l26spa01')).toBeUndefined();
+    expect(normaliserHold('52812')).toBeUndefined();
+  });
+  it('finder holdet i tekst fra tekstgenkendelse', () => {
+    const r = udtraekFraTekst('1c 1.GF02-DIG 52812 l26spa01 Ida Testesen K Spansk\n1c 1.GF01-DIG 53008 l26kia01 Malte Opdigt M Kinesisk');
+    expect(r.elever.map((e) => [e.fornavn, e.hold])).toEqual([['Ida', 'GF02'], ['Malte', 'GF01']]);
   });
 });
 

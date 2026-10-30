@@ -32,6 +32,10 @@ export interface Vaegte {
   aleneSidst: number;
   /** Ekstra pr. tidligere gang alene. */
   aleneTidligere: number;
+  /** For to fra samme grundforløbshold i samme makkerpar. */
+  gfPar: number;
+  /** For to fra samme grundforløbshold i samme netværksgruppe (uden at være makkere). */
+  gfGruppe: number;
   /** For et "hold adskilt"-par ved samme bord. */
   holdAdskilt: number;
 }
@@ -46,6 +50,8 @@ export const STANDARDVAEGTE: Vaegte = {
   alene: 25,
   aleneSidst: 250,
   aleneTidligere: 25,
+  gfPar: 20,
+  gfGruppe: 8,
   holdAdskilt: 1e9,
 };
 
@@ -274,8 +280,11 @@ function forbered(input: OptimeringsInput, v: Vaegte, fasteOptagne?: number[][])
   for (let a = 0; a < n; a++) {
     for (let b = a + 1; b < n; b++) {
       const k = parNoegle(elever[a]!.id, elever[b]!.id);
-      const g = v.gruppe * (h.gruppe.vaegt.get(k) ?? 0);
-      const m = v.makker * (h.makker.vaegt.get(k) ?? 0) + g;
+      const sammeGf = !!elever[a]!.hold && elever[a]!.hold === elever[b]!.hold;
+      const gruppeHist = v.gruppe * (h.gruppe.vaegt.get(k) ?? 0);
+      const makkerHist = v.makker * (h.makker.vaegt.get(k) ?? 0);
+      const g = gruppeHist + (sammeGf ? v.gfGruppe : 0);
+      const m = makkerHist + gruppeHist + (sammeGf ? v.gfPar : 0);
       makkerStraf[a * n + b] = makkerStraf[b * n + a] = m;
       gruppeStraf[a * n + b] = gruppeStraf[b * n + a] = g;
     }

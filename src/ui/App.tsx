@@ -169,7 +169,7 @@ function NyKlasse(props: { kanAnnullere: boolean }) {
   function gem(raekker: KontrolRaekke[]) {
     const klasse = nyKlasse(
       navn.trim(),
-      raekker.map((r) => ({ id: nyId(), navn: r.navn, koen: r.koen })),
+      raekker.map((r) => ({ id: nyId(), navn: r.navn, koen: r.koen, ...(r.hold ? { hold: r.hold } : {}) })),
     );
     opdater((d) => {
       d.klasser.push(klasse);

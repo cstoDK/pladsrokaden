@@ -123,6 +123,28 @@ describe('lavPlacering: borde à 2 sat sammen to og to', () => {
   });
 });
 
+describe('lavPlacering: på tværs af grundforløbshold', () => {
+  // 28 elever fra 7 GF-hold (4 fra hvert), 7 rækker à 4 (borde à 2 sat sammen).
+  const elever = lavElever(14, 14).map((e, i) => ({ ...e, hold: `GF0${(i % 7) + 1}` }));
+  const lokale = testLokale({ antalBorde: 14, pladserPrBord: 2, bordePrRaekke: 4, toOgTo: true });
+  const holdAf = new Map(elever.map((e) => [e.id, e.hold]));
+
+  it('makkerpar er fra hver sit GF-hold, og grupperne blandes på tværs', () => {
+    for (const plan of simuler(elever, lokale, 4)) {
+      const g = planGrupper(plan.lokale, plan.placering);
+      for (const gr of g) for (const p of gr.par) expect(new Set(p.map((id) => holdAf.get(id))).size).toBe(p.length);
+      const medDubletter = g.filter((gr) => new Set(gr.par.flat().map((id) => holdAf.get(id))).size < gr.par.flat().length).length;
+      expect(medDubletter).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('blandingen går ikke ud over blandede køn i makkerparrene', () => {
+    const [plan] = simuler(elever, lokale, 1);
+    const g = planGrupper(plan!.lokale, plan!.placering);
+    for (const gr of g) for (const p of gr.par) expect(p.map((id) => id[0]).sort().join('')).toBe('DP');
+  });
+});
+
 describe('lavPlacering: forrest, køn og regler', () => {
   it('forreste borde roterer retfærdigt over 6 runder', () => {
     const elever = lavElever(16, 16);

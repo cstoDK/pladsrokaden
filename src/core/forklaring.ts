@@ -56,6 +56,10 @@ export function forklar(input: ForklaringsInput): Forklaring {
   let alene = 0;
   let aleneIgen = 0;
   let adskiltBrudt = 0;
+  const hold = new Map(elever.map((e) => [e.id, e.hold ?? null]));
+  const harHold = elever.some((e) => e.hold);
+  let gfPar = 0;
+  let gfGrupper = 0;
   let ensomme = 0;
 
   for (const g of grupper) {
@@ -82,7 +86,20 @@ export function forklar(input: ForklaringsInput): Forklaring {
         }
       }
     }
+    for (const par of g.par) {
+      for (let a = 0; a < par.length; a++) {
+        for (let b = a + 1; b < par.length; b++) {
+          const h1 = hold.get(par[a]!);
+          if (h1 && h1 === hold.get(par[b]!)) {
+            gfPar++;
+            liste.push({ niveau: 'bemaerk', tekst: `${og([par[a]!, par[b]!])} er begge fra ${h1}`, elevIder: [par[a]!, par[b]!] });
+          }
+        }
+      }
+    }
     const alle = g.par.flat();
+    const gf = alle.map((id) => hold.get(id)).filter(Boolean);
+    if (new Set(gf).size < gf.length) gfGrupper++;
     for (let a = 0; a < alle.length; a++) {
       for (let b = a + 1; b < alle.length; b++) if (h.gruppe.sidst.has(parNoegle(alle[a]!, alle[b]!))) gruppeIgen++;
     }
@@ -144,6 +161,11 @@ export function forklar(input: ForklaringsInput): Forklaring {
         ? { niveau: 'ok', tekst: 'Alle makkerpar er blandede (pige og dreng)' }
         : { niveau: 'bemaerk', tekst: `${antal(ikkeBlandet, 'makkerpar', 'makkerpar')} er ikke blandet` },
     );
+  }
+  if (harHold) {
+    if (gfPar > 0) status.push({ niveau: 'bemaerk', tekst: `${antal(gfPar, 'makkerpar er', 'makkerpar er')} fra samme GF-hold` });
+    else if (gfGrupper > 0) status.push({ niveau: 'ok', tekst: `Alle makkerpar er fra hver sit GF-hold` });
+    else status.push({ niveau: 'ok', tekst: 'Alle i hver netværksgruppe er fra forskellige GF-hold' });
   }
   if (harHistorik && forrest.size > 0) {
     status.push(forrestIgen === 0 ? { niveau: 'ok', tekst: 'Ingen er forrest to gange i træk' } : { niveau: 'bemaerk', tekst: `${forrestIgen} er forrest igen` });

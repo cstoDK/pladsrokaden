@@ -83,6 +83,7 @@ Først afgøres, hvor mange elever der sidder ved hvert bord (ingen alene, tomme
 | Blandede makkerpar | pr. makkerpar, hvor alle har samme køn | 30 |
 | Kønsbalance i gruppen | vægt × (antal drenge i gruppen − forventet ud fra klassens fordeling)² | 6 |
 | Eneste af sit køn (gruppe med mindst 3) | pr. elev, plus ekstra hvis det også skete i sidste plan, plus for hver tidligere gang | 25, 250 og 25 |
+| På tværs af GF-hold | pr. makkerpar fra samme grundforløbshold, og pr. par i samme netværksgruppe fra samme hold | 20 og 8 |
 | Hold adskilt | pr. par ved samme bord | 10⁹ |
 
 "Forrest" er de borde, der står nærmest tavlen; læreren kan ændre det for det enkelte bord. Elever uden angivet køn tæller ikke med i kønsbalancen. Vægtene står i `STANDARDVAEGTE` i `src/core/optimering.ts`.
@@ -98,6 +99,10 @@ Et lokale har et nummer, en størrelse, borde (en række af pladser, vandret ell
 ### Import
 
 `src/core/import.ts` finder fornavne i rodet tekst: tabulatorer og kolonner, overskrifter (Elev, Navn, Fornavn, Efternavn, Køn), "Efternavn, Fornavn", efternavne med versaler, navnepartikler (al-, de, van), og den smider klassekoder, numre, e-mails, datoer, CPR-lignende numre, menuord fra Ludus og Lectio samt udmeldte elever væk. HTML-tabeller fra udklipsholderen læses inaktivt. Tekst fra tekstgenkendelse renses for typiske fejl ("ldaTestesen" bliver til "Ida Testesen"). Kun det første fornavn (mellemnavne er ofte slægtsnavne og fjernes), køn og højst to bogstaver af efternavnet (til dubletter) forlader modulet. En fælles sikring (`kunFornavn`) bruges på alle importveje. Data fra version 1 og 2, hvor en fejl kunne gemme mellemnavne fra en Fornavn-kolonne, ryddes automatisk op, når appen åbnes, og når en gammel sikkerhedskopi hentes. Testene bruger realistiske, opdigtede eksempler.
+
+### Grundforløbshold
+
+Har klasselisten en kolonne med grundforløbshold (fx "GF-Klasse" med "1.GF02-DIG"), gemmes holdet i kort form ("GF02"), og algoritmen blander eleverne på tværs af holdene. Holdet kan rettes under Elever. "Opdatér fra klasseliste" sammenligner en ny liste med klassen: GF-hold (og manglende køn) sættes for dem, der findes begge steder, og elever, der kun står på listen eller kun i klassen, vises, så læreren kan tilføje eller fjerne dem. Intet ændres, før læreren gemmer. Kursistnumre, sprog og valgfag kasseres ved importen.
 
 ### Forslag til køn
 

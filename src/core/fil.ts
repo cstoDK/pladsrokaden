@@ -3,7 +3,7 @@
 // andet end fornavn, køn, lokaler, planer, låse og "hold adskilt"-par.
 // Data fra appens første version (version 1) flyttes over automatisk.
 
-import { kunFornavn, navngivDubletter } from './import';
+import { kunFornavn, navngivDubletter, normaliserHold } from './import';
 import { type LokaleV1, flytMobilskabFri, fraDybeBorde, fraV1 } from './lokale';
 import {
   type AppData,
@@ -144,7 +144,8 @@ function laesKlasse(x: unknown, lokaler: Lokale[]): Klasse | null {
   for (const e of x['elever']) {
     if (!erObjekt(e) || !tekst(e['id']) || !tekst(e['navn'], MAKS_NAVN)) return null;
     const koen = e['koen'] === 'P' || e['koen'] === 'D' ? e['koen'] : null;
-    elever.push({ id: e['id'], navn: e['navn'], koen });
+    const hold = typeof e['hold'] === 'string' ? normaliserHold(e['hold']) : undefined;
+    elever.push({ id: e['id'], navn: e['navn'], koen, ...(hold ? { hold } : {}) });
   }
   const ider = new Set(elever.map((e) => e.id));
   const holdAdskilt: [string, string][] = [];

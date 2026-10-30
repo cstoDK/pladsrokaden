@@ -32,7 +32,7 @@ export function Import(props: ImportProps) {
 
   function modtag(u: Udtraek) {
     const { raekker: nye, gaettet, tvivl } = medKoensforslag(
-      navngivDubletter(u.elever).map((n, i) => ({ noegle: nyNoegle(), navn: n.navn, koen: u.elever[i]!.koen })),
+      navngivDubletter(u.elever).map((n, i) => ({ noegle: nyNoegle(), navn: n.navn, koen: u.elever[i]!.koen, hold: u.elever[i]!.hold })),
     );
     setRaekker((gamle) => [...(gamle ?? []), ...nye]);
     setResultat({ fundet: nye.length, sprungetOver: u.sprungetOver, gaettet, tvivl: tvivl.length });
@@ -68,7 +68,7 @@ export function Import(props: ImportProps) {
 
 // ----------------------------------------------------------------------
 
-function Hent(props: { onUdtraek: (u: Udtraek) => void; onTilbage?: () => void; tilbageTekst: string }) {
+export function Hent(props: { onUdtraek: (u: Udtraek) => void; onTilbage?: () => void; tilbageTekst: string; titel?: string; tekst?: string }) {
   const [fane, setFane] = useState<Fane>('tekst');
   const [fejl, setFejl] = useState<string | null>(null);
   const [ocr, setOcr] = useState<OcrStatus | null>(null);
@@ -148,8 +148,8 @@ function Hent(props: { onUdtraek: (u: Udtraek) => void; onTilbage?: () => void; 
 
   return (
     <section class="kort" aria-labelledby="hent-titel">
-      <h2 id="hent-titel">Hvem går i klassen?</h2>
-      <p class="daempet">Vælg den måde, der er nemmest for dig. Du kan rette navnene bagefter.</p>
+      <h2 id="hent-titel">{props.titel ?? 'Hvem går i klassen?'}</h2>
+      <p class="daempet">{props.tekst ?? 'Vælg den måde, der er nemmest for dig. Du kan rette navnene bagefter.'}</p>
       <div class="faner" role="tablist" aria-label="Måde at hente elever på">
         {FANER.map((f, i) => (
           <button
