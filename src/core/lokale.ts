@@ -1,7 +1,7 @@
 // Lokaler: skabeloner, automatisk størrelse og nummerering af borde, og
 // konvertering af lokaler fra den første version af appen.
 
-import { type Bord, type Lokale, MOBILSKAB, afstandTilTavle, bordBredde, bordHoejde, nyId } from './model';
+import { type Bord, type Lokale, MOBILSKAB, afstandTilTavle, bordBredde, bordHoejde, bordRaekker, nyId } from './model';
 
 export type SkabelonId = 'raekker' | 'fire' | 'par';
 
@@ -165,6 +165,55 @@ export function flytMobilskabFri(l: Lokale): void {
   const bagest = l.tavle.vaeg === 'bund' ? 0.5 : Math.max(0, ...l.borde.map((b) => b.y + bordHoejde(b))) + 0.6;
   l.mobilskab = { x: MARGIN, y: bagest };
   if (overlapper(l.mobilskab.x, l.mobilskab.y)) l.mobilskab.y = Math.max(0, ...l.borde.map((b) => b.y + bordHoejde(b))) + 0.6;
+  tilpasStoerrelse(l);
+}
+
+/** Gitteret, bordene klikker fast til: hele pladser vandret, rækker lodret. */
+export const GITTER = { raekkeStart: RAEKKE_START, raekkeAfstand: RAEKKE_AFSTAND };
+
+/** Nærmeste punkt i gitteret for et bords øverste venstre hjørne. */
+export function iGitter(x: number, y: number): { x: number; y: number } {
+  const r = Math.max(0, Math.round((y - RAEKKE_START) / RAEKKE_AFSTAND));
+  const gy = y < RAEKKE_START - RAEKKE_AFSTAND / 2 ? Math.max(0, Math.round(y * 2) / 2) : RAEKKE_START + r * RAEKKE_AFSTAND;
+  return { x: Math.max(0, Math.round(x)), y: Math.round(gy * 100) / 100 };
+}
+
+/**
+ * Retter bordene ind: borde (og borde, der står sammen) i samme række får
+ * samme højde, rækkerne får samme afstand, og borde, der står næsten under
+ * hinanden, rettes ind i samme kolonne.
+ */
+export function retBordeneInd(l: Lokale): void {
+  const enheder = bordRaekker(l).map((r) => ({ borde: r, x: Math.min(...r.map((b) => b.x)), y: Math.min(...r.map((b) => b.y)) }));
+  // Rækker: enheder, hvis top ligger tæt, hører til samme række.
+  const efterY = [...enheder].sort((a, b) => a.y - b.y);
+  let raekke = -1;
+  let sidsteY = -Infinity;
+  const start = efterY.length ? iGitter(0, efterY[0]!.y).y : RAEKKE_START;
+  const nyY = new Map<(typeof enheder)[number], number>();
+  for (const e of efterY) {
+    if (e.y - sidsteY > RAEKKE_AFSTAND / 2) {
+      raekke++;
+      sidsteY = e.y;
+    }
+    nyY.set(e, Math.round((start + raekke * RAEKKE_AFSTAND) * 100) / 100);
+  }
+  // Kolonner: venstre kanter tæt på hinanden rettes ind efter den yderste.
+  const efterX = [...enheder].sort((a, b) => a.x - b.x);
+  const nyX = new Map<(typeof enheder)[number], number>();
+  let kolonneX = -Infinity;
+  for (const e of efterX) {
+    if (e.x - kolonneX > 1.5) kolonneX = Math.round(e.x);
+    nyX.set(e, kolonneX);
+  }
+  for (const e of enheder) {
+    const dx = nyX.get(e)! - e.x;
+    const dy = nyY.get(e)! - e.y;
+    for (const b of e.borde) {
+      b.x = Math.round((b.x + dx) * 100) / 100;
+      b.y = Math.round((b.y + dy) * 100) / 100;
+    }
+  }
   tilpasStoerrelse(l);
 }
 

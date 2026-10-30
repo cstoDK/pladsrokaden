@@ -12,7 +12,7 @@ import { DelKnapper, GruppeOversigt } from './Deling';
 import { type BordProblem, type Statusmaerke } from '../../core/forklaring';
 import { type Fane } from '../../app/navigation';
 import { boerTageSikkerhedskopi, gemSikkerhedskopi } from '../../app/handlinger';
-import { hentData } from '../../app/tilstand';
+import { hentData, opdater } from '../../app/tilstand';
 
 export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: boolean; onFane: (f: Fane) => void }) {
   const onRetLokale = () => props.onFane('lokale');
@@ -107,7 +107,7 @@ function GemtPlan(props: { klasse: Klasse; onFane: (f: Fane) => void }) {
       )}
       <DelKnapper klasse={k} plan={plan} />
       <Statusliste status={f.status} onFane={props.onFane} />
-      <Lokaletegning lokale={plan.lokale} placering={plan.placering} navn={navn} overskrift="Bordplan" />
+      <Lokaletegning lokale={plan.lokale} placering={plan.placering} navn={navn} overskrift="Bordplan" onFlytMobilskab={(p) => flytMobilskab(k, p)} />
       <Problemliste lokale={plan.lokale} problemer={f.borde} />
       <h2 class="mellemoverskrift">Netværksgrupper og makkerpar</h2>
       <GruppeOversigt plan={plan} navn={navn} />
@@ -359,6 +359,7 @@ function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; f
         placering={plan.placering}
         navn={navn}
         overskrift="Bordplan"
+        onFlytMobilskab={(p) => flytMobilskab(k, p)}
         redigering={{
           valgt,
           laaste,
@@ -395,4 +396,19 @@ function Problemliste(props: { lokale: Lokale; problemer: Record<string, BordPro
       </ul>
     </section>
   );
+}
+
+/**
+ * Mobilskabet flyttes direkte i planen: i lokalet (så det huskes), i den
+ * gældende plan og i kladden. Det påvirker ikke, hvor eleverne sidder.
+ */
+function flytMobilskab(k: Klasse, pos: { x: number; y: number }) {
+  opdater((d) => {
+    const lokale = d.lokaler.find((l) => l.id === k.lokaleId);
+    if (lokale?.mobilskab) lokale.mobilskab = { ...pos };
+    const x = d.klasser.find((y) => y.id === k.id);
+    const plan = x?.planer[x.planer.length - 1];
+    if (plan?.lokale.mobilskab) plan.lokale.mobilskab = { ...pos };
+    if (x?.kladde?.plan.lokale.mobilskab) x.kladde.plan.lokale.mobilskab = { ...pos };
+  });
 }

@@ -26,6 +26,8 @@ interface Props {
   maal?: { u: number; skrift: number; enhed: 'px' | 'mm' };
   /** Skjult overskrift over bordene, så overskrifternes rækkefølge holder. */
   overskrift?: string;
+  /** Gør mobilskabet flytbart direkte i tegningen. */
+  onFlytMobilskab?: (pos: { x: number; y: number }) => void;
 }
 
 export const GRUPPEFARVER = ['#dbe8f7', '#f9dde3', '#dcf1e2', '#fbefc8', '#e8e1f7', '#fde3cf', '#d4f0f2', '#ece9e2', '#f3dcf0', '#e3efcf'];
@@ -46,6 +48,9 @@ export function Lokaletegning(props: Props) {
   const ramme = useRef<HTMLDivElement>(null);
   const [rul, setRul] = useState(false);
   const [plads, setPlads] = useState(900);
+  const [top, setTop] = useState(300);
+  const [skab, setSkab] = useState<{ x: number; y: number } | null>(null);
+  const skabTraek = useRef<{ x0: number; y0: number; fra: { x: number; y: number }; flyttet: boolean } | null>(null);
 
   // Hele lokalet skal kunne ses uden at rulle: det skaleres til både
   // bredden og skærmens højde. Alle navne får samme skriftstørrelse, så det
@@ -53,8 +58,11 @@ export function Lokaletegning(props: Props) {
   const em = laengsteNavn(placering, props.navn);
   let maal = props.maal;
   if (!maal) {
-    const hoejde = Math.max(320, (typeof window === 'undefined' ? 900 : window.innerHeight) - 50);
-    let u = Math.max(24, Math.floor(Math.min(140, (plads - 6) / lokale.bredde, hoejde / lokale.hoejde)));
+    // Lokalet skal kunne ses sammen med knapperne over det (overblik), men
+    // fylder mindst halvdelen af skærmens højde, så navnene kan læses.
+    const vh = typeof window === 'undefined' ? 900 : window.innerHeight;
+    const hoejde = Math.max(vh * 0.55, vh - top - 24);
+    let u = Math.max(24, Math.floor(Math.min(110, (plads - 6) / lokale.bredde, hoejde / lokale.hoejde)));
     // På telefoner kan et helt lokale ikke vises læsbart; der må skriften
     // ikke blive under 11 px, og lokalet ruller i stedet til siden.
     if (plads < 700) u = Math.max(u, 48, Math.ceil((11 * em) / 0.95 + 6), Math.ceil((11 * 1.15 * (flereOrd(placering, props.navn) ? 2 : 1) + 6) / PLADSDYBDE));
@@ -77,6 +85,7 @@ export function Lokaletegning(props: Props) {
     if (!el || typeof ResizeObserver === 'undefined') return;
     const tjek = () => {
       setPlads(el.clientWidth);
+      setTop(Math.min(el.getBoundingClientRect().top + window.scrollY, window.innerHeight * 0.45));
       setRul(el.scrollWidth > el.clientWidth + 2);
     };
     const ro = new ResizeObserver(tjek);
@@ -180,11 +189,55 @@ export function Lokaletegning(props: Props) {
             </div>
           );
         })}
-        {lokale.mobilskab && (
-          <div class="mobilskab" style={pos(lokale.mobilskab.x, lokale.mobilskab.y, MOBILSKAB.bredde, MOBILSKAB.hoejde)}>
-            Mobilskab
-          </div>
-        )}
+        {lokale.mobilskab &&
+          (props.onFlytMobilskab ? (
+            <button
+              type="button"
+              class="mobilskab flytbar"
+              style={pos((skab ?? lokale.mobilskab).x, (skab ?? lokale.mobilskab).y, MOBILSKAB.bredde, MOBILSKAB.hoejde)}
+              aria-label="Mobilskab. Træk det, eller flyt det med piletasterne."
+              title="Træk mobilskabet derhen, hvor det står"
+              onPointerDown={(e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                skabTraek.current = { x0: e.clientX, y0: e.clientY, fra: { ...lokale.mobilskab! }, flyttet: false };
+              }}
+              onPointerMove={(e) => {
+                const t = skabTraek.current;
+                if (!t) return;
+                const u = (e.currentTarget.parentElement?.getBoundingClientRect().width ?? 1) / lokale.bredde;
+                const nx = Math.max(0, Math.round((t.fra.x + (e.clientX - t.x0) / u) * 2) / 2);
+                const ny = Math.max(0, Math.round((t.fra.y + (e.clientY - t.y0) / u) * 2) / 2);
+                t.flyttet = true;
+                setSkab({ x: Math.min(nx, lokale.bredde - MOBILSKAB.bredde), y: Math.min(ny, lokale.hoejde - MOBILSKAB.hoejde) });
+              }}
+              onPointerUp={() => {
+                const t = skabTraek.current;
+                skabTraek.current = null;
+                if (t?.flyttet && skab) props.onFlytMobilskab!(skab);
+                setSkab(null);
+              }}
+              onPointerCancel={() => {
+                skabTraek.current = null;
+                setSkab(null);
+              }}
+              onKeyDown={(e) => {
+                const d: Record<string, [number, number]> = { ArrowLeft: [-0.5, 0], ArrowRight: [0.5, 0], ArrowUp: [0, -0.5], ArrowDown: [0, 0.5] };
+                const r = d[e.key];
+                if (!r) return;
+                e.preventDefault();
+                const m = lokale.mobilskab!;
+                props.onFlytMobilskab!({ x: Math.max(0, m.x + r[0]), y: Math.max(0, m.y + r[1]) });
+              }}
+            >
+              Mobilskab
+            </button>
+          ) : (
+            <div class="mobilskab" style={pos(lokale.mobilskab.x, lokale.mobilskab.y, MOBILSKAB.bredde, MOBILSKAB.hoejde)}>
+              Mobilskab
+            </div>
+          ))}
       </div>
     </div>
   );

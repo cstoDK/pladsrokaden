@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { kanSaettesSammen, saetSammenToOgTo, flytMobilskabFri, fraDybeBorde, fjernTomPlads, sugSammen, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
+import { iGitter, retBordeneInd, kanSaettesSammen, saetSammenToOgTo, flytMobilskabFri, fraDybeBorde, fjernTomPlads, sugSammen, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
 import { bordRaekker, forresteBorde, staarSammen } from './model';
 
 describe('lavLokale', () => {
@@ -36,6 +36,23 @@ it('"Sæt bordene sammen to og to" stiller hver række i par med en gang imellem
   expect(l.borde.map((b) => [b.x, b.y])).toEqual([[1, 1.5], [3, 1.5], [6, 1.5], [8, 1.5], [1, 2.8], [3, 2.8]]);
   expect(bordRaekker(l).map((r) => r.length)).toEqual([2, 2, 2]);
   expect(kanSaettesSammen(l)).toBe(false);
+});
+
+it('bordene klikker fast til gitteret', () => {
+  expect(iGitter(3.4, 2.9)).toEqual({ x: 3, y: 2.8 });
+  expect(iGitter(0.2, 1.4)).toEqual({ x: 0, y: 1.5 });
+  expect(iGitter(5.6, 3.6)).toEqual({ x: 6, y: 4.1 });
+});
+
+it('"Ret bordene ind" giver rækkerne samme afstand og retter kolonnerne ind', () => {
+  // To kolonner af borde à 4, skævt placeret som efter frihåndstræk.
+  const l = lavLokale({ antalBorde: 6, pladserPrBord: 4, bordePrRaekke: 2 });
+  const skaev = [[1.5, 1.5], [12, 1.5], [1, 3.6], [11.5, 3.2], [1, 4.3], [12.4, 6.8]];
+  l.borde.forEach((b, i) => ([b.x, b.y] = skaev[i] as [number, number]));
+  retBordeneInd(l);
+  expect(l.borde.map((b) => b.x)).toEqual([1, 12, 1, 12, 1, 12]);
+  const ys = [...new Set(l.borde.map((b) => b.y))].sort((a, b) => a - b);
+  expect(ys.slice(1).map((y, i) => Math.round((y - ys[i]!) * 10) / 10)).toEqual(ys.slice(1).map(() => 1.3));
 });
 
 it('lokaler fra version 1 får et mobilskab', () => {

@@ -33,12 +33,12 @@ body {
   background: var(--bg);
   color: var(--tekst);
   font-family: var(--skrift);
-  font-size: 1.0625rem;
+  font-size: 1rem;
   line-height: 1.5;
 }
 
 h1, h2, h3 { line-height: 1.25; margin: 0 0 0.5rem; }
-h1 { font-size: 1.75rem; }
+h1 { font-size: 1.5rem; }
 h2 { font-size: 1.375rem; }
 h3 { font-size: 1.125rem; }
 p { margin: 0 0 1rem; }
@@ -264,7 +264,7 @@ progress { width: 100%; height: 0.75rem; accent-color: var(--accent); }
 
 .lokale { overflow-x: auto; padding: 0.25rem 0 0.75rem; }
 /* Planen og lokale-editoren må bruge hele skærmens bredde. */
-main:has(.lokale.fuld) { max-width: none; }
+main:has(.lokale.fuld) { max-width: 1500px; }
 .rum {
   position: relative; margin: 0 auto; background: var(--flade);
   border: 2px solid var(--kant-staerk); border-radius: 6px;
@@ -493,7 +493,13 @@ body.tavle-aaben { overflow: hidden; }
 
 /* ---------- Lokale-editor ---------- */
 
-.lokale.editor .rum { touch-action: none; font-size: 13px; user-select: none; -webkit-user-select: none; }
+.lokale.editor .rum {
+  touch-action: none; font-size: 13px; user-select: none; -webkit-user-select: none;
+  /* Gitteret: en prik pr. plads vandret og pr. række lodret. */
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.22) 1.2px, transparent 1.6px);
+  background-size: var(--u) calc(var(--u) * 1.3);
+  background-position: calc(var(--u) * -0.5) calc(var(--u) * 0.85);
+}
 .handlingsbar.fast { position: static; }
 .flytbar { cursor: grab; padding: 0; font: inherit; color: inherit; touch-action: none; }
 .flytbar:active { cursor: grabbing; }

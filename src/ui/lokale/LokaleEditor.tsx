@@ -10,8 +10,10 @@ import {
   type SkabelonId,
   foreslaaIndstillinger,
   lavLokale,
+  iGitter,
   kanSaettesSammen,
   normaliserLokale,
+  retBordeneInd,
   saetSammenToOgTo,
   sugSammen,
   tilpasStoerrelse,
@@ -189,6 +191,7 @@ function RumEditor(props: {
   const [stak, setStak] = useState<Lokale[]>([]);
   const [annonce, setAnnonce] = useState('');
   const [bredde, setBredde] = useState(800);
+  const [top, setTop] = useState(300);
   const ramme = useRef<HTMLDivElement>(null);
   const traek = useRef<{ x0: number; y0: number; start: Lokale; flyttet: boolean } | null>(null);
   const seneste = useRef({ l, stak });
@@ -199,9 +202,13 @@ function RumEditor(props: {
   useEffect(() => {
     const el = ramme.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => setBredde(el.clientWidth));
+    const maal = () => {
+      setBredde(el.clientWidth);
+      setTop(Math.min(el.getBoundingClientRect().top + window.scrollY, window.innerHeight * 0.5));
+    };
+    const ro = new ResizeObserver(maal);
     ro.observe(el);
-    setBredde(el.clientWidth);
+    maal();
     return () => ro.disconnect();
   }, []);
 
@@ -218,9 +225,9 @@ function RumEditor(props: {
     return () => document.removeEventListener('keydown', ved);
   }, []);
 
-  // Hele lokalet skal kunne ses uden at rulle.
-  const hoejde = Math.max(320, window.innerHeight - 160);
-  let u = Math.max(24, Math.floor(Math.min(80, (bredde - 6) / l.bredde, hoejde / l.hoejde)));
+  // Hele lokalet skal kunne ses sammen med knapperne over og "Gem" under.
+  const hoejde = Math.max(window.innerHeight * 0.5, window.innerHeight - top - 150);
+  let u = Math.max(24, Math.floor(Math.min(56, (bredde - 6) / l.bredde, hoejde / l.hoejde)));
   // På telefoner skal bordene være store nok til en finger; der ruller lokalet i stedet.
   if (bredde < 700) u = Math.max(u, 74);
 
@@ -253,8 +260,10 @@ function RumEditor(props: {
     if (v.type === 'bord') {
       const b = k.borde.find((x) => x.id === v.id);
       if (b) {
-        b.x = snap(b.x + dx);
-        b.y = snap(b.y + dy);
+        // Bordene klikker fast til gitteret (hele pladser vandret, rækker lodret).
+        const g = iGitter(b.x + dx, b.y + dy);
+        b.x = g.x;
+        b.y = g.y;
       }
     } else if (v.type === 'skab' && k.mobilskab) {
       k.mobilskab.x = snap(k.mobilskab.x + dx);
@@ -307,8 +316,10 @@ function RumEditor(props: {
   }
 
   function tast(e: KeyboardEvent, v: Valgt) {
-    const trin = e.shiftKey ? 2 : 0.5;
-    const d: Record<string, [number, number]> = { ArrowLeft: [-trin, 0], ArrowRight: [trin, 0], ArrowUp: [0, -trin], ArrowDown: [0, trin] };
+    const bord = v?.type === 'bord';
+    const tv = bord ? (e.shiftKey ? 4 : 1) : e.shiftKey ? 2 : 0.5;
+    const tl = bord ? 1.3 : e.shiftKey ? 2 : 0.5;
+    const d: Record<string, [number, number]> = { ArrowLeft: [-tv, 0], ArrowRight: [tv, 0], ArrowUp: [0, -tl], ArrowDown: [0, tl] };
     const r = d[e.key];
     if (r) {
       e.preventDefault();
@@ -346,11 +357,10 @@ function RumEditor(props: {
   return (
     <section class="kort" aria-labelledby="rum-titel">
       <h2 id="rum-titel">Indret lokalet</h2>
-      <div class="meddelelse meddelelse-ok">
-        <strong>Tag fat i et bord, tavlen eller mobilskabet med musen (eller fingeren), og træk det på plads.</strong> Slipper du et bord
-        tæt på enden af et andet, sættes de sammen, så de danner én række. Tryk på et bord for at ændre antal pladser eller dreje det.
-        Med tastaturet: vælg med Tab, og flyt med piletasterne.
-      </div>
+      <p class="hjaelp">
+        <strong>Træk bordene, tavlen og mobilskabet på plads.</strong> Bordene klikker fast i gitteret; slip et bord ved enden af et
+        andet, så står de sammen. Tryk på et bord for at ændre pladser eller dreje det. Tastatur: Tab og piletaster.
+      </p>
       <div class="vaerktoejer">
         {kanSaettesSammen(l) && (
           <button
@@ -361,6 +371,9 @@ function RumEditor(props: {
             Sæt bordene sammen to og to
           </button>
         )}
+        <button class="knap" type="button" onClick={() => medKopi((k) => retBordeneInd(k), 'Bordene er rettet ind: samme afstand mellem rækkerne, og kolonnerne flugter.')}>
+          Ret bordene ind
+        </button>
         <button class="knap" type="button" onClick={tilfoejBord}>
           Tilføj bord
         </button>
