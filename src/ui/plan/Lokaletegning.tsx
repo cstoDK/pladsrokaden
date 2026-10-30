@@ -58,11 +58,14 @@ export function Lokaletegning(props: Props) {
   const em = laengsteNavn(placering, props.navn);
   let maal = props.maal;
   if (!maal) {
-    // Lokalet skal kunne ses sammen med knapperne over det (overblik), men
-    // fylder mindst halvdelen af skærmens højde, så navnene kan læses.
+    // Lokalet skal helst kunne ses sammen med knapperne over det (overblik),
+    // men læsbare navne vejer tungere end at undgå at rulle lidt: navnene
+    // får mindst 13 px, så længe lokalet kan være i bredden.
     const vh = typeof window === 'undefined' ? 900 : window.innerHeight;
-    const hoejde = Math.max(vh * 0.55, vh - top - 24);
-    let u = Math.max(24, Math.floor(Math.min(110, (plads - 6) / lokale.bredde, hoejde / lokale.hoejde)));
+    const hoejde = Math.max(vh * 0.7, vh - top - 16);
+    const iBredden = Math.floor(Math.min(110, (plads - 6) / lokale.bredde));
+    const laesbar = Math.ceil(Math.max((13 * em) / 0.95 + 6, (13 * 1.15 * (flereOrd(placering, props.navn) ? 2 : 1) + 6) / PLADSDYBDE));
+    let u = Math.max(24, Math.min(iBredden, Math.max(laesbar, Math.floor(hoejde / lokale.hoejde))));
     // På telefoner kan et helt lokale ikke vises læsbart; der må skriften
     // ikke blive under 11 px, og lokalet ruller i stedet til siden.
     if (plads < 700) u = Math.max(u, 48, Math.ceil((11 * em) / 0.95 + 6), Math.ceil((11 * 1.15 * (flereOrd(placering, props.navn) ? 2 : 1) + 6) / PLADSDYBDE));

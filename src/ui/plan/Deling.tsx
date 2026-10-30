@@ -1,5 +1,6 @@
 // Deling af en gemt plan: udskriv / PDF, kopiér som tekst og vis på tavlen.
 
+import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { planTitel } from '../../core/dato';
 import { planSomTekst } from '../../core/deling';
@@ -14,12 +15,12 @@ export function navneOpslag(k: Klasse) {
   return (id: string) => m.get(id) ?? 'Tidligere elev';
 }
 
-export function DelKnapper(props: { klasse: Klasse; plan: Plan }) {
+export function DelKnapper(props: { klasse: Klasse; plan: Plan; children?: ComponentChildren }) {
   const [tavle, setTavle] = useState(false);
   const { klasse, plan } = props;
   return (
     <>
-      <div class="vaerktoejer" role="group" aria-label="Del planen">
+      <div class="vaerktoejer" role="group" aria-label="Del og ret planen">
         <button class="knap" type="button" onClick={() => udskriv(klasse, plan)}>
           Udskriv / gem som PDF
         </button>
@@ -36,6 +37,7 @@ export function DelKnapper(props: { klasse: Klasse; plan: Plan }) {
         <button class="knap" type="button" onClick={() => setTavle(true)}>
           Vis på tavlen
         </button>
+        {props.children}
       </div>
       {tavle && <Tavlevisning klasse={klasse} plan={plan} onLuk={() => setTavle(false)} />}
     </>

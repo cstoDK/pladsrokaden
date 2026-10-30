@@ -82,3 +82,21 @@ Kontrolleret med axe-core (WCAG 2.0/2.1/2.2 A og AA samt best practice) på alle
 | En plan dateret tilbage i tiden kom sidst i historikken. | Planerne sorteres efter dato. |
 | En klasse uden elever viste en fejl, når man prøvede at lave en plan. | Tom tilstand: "2.c har ingen elever endnu" med knappen "Tilføj elever". |
 | Ingen viste, at data gemmes automatisk. | Sidefod: "Alt gemmes automatisk i denne browser. Intet sendes nogen steder hen." |
+
+## Designtjekliste (visuelt hierarki)
+
+Lavet ud fra Refactoring UI (Wathan og Schoger), Gestalts nærhedsprincip og
+WCAG 2.2 (2.5.8 Target Size Minimum). Gennemgået på planskærmen ved 1280×650
+(en bærbar med 150 % skalering) og 1920×960.
+
+| # | Punkt | Hvad vi gjorde |
+|---|-------|----------------|
+| 1 | Indhold før værktøjer: lokalet er det vigtigste og skal fylde mest | Toppen fylder ca. 130 px mindre; lokalet starter højere oppe |
+| 2 | Én primær handling pr. skærm | Kun "Gem plan" / "Lav ny plan" er blå og store; resten er sekundære; "Kassér kladde" er et link |
+| 3 | Nedton det sekundære | Statusmærker, beskeder og påmindelser er mindre og lettere |
+| 4 | Nærhed: det der hører sammen, står sammen | Kladde-mærke og hjælpetekst står ved overskriften i stedet for i et eget gult banner; "Flyt borde" står i samme række som deleknapperne |
+| 5 | Fast afstandsskala | Afstande mellem blokke er 12 px; inde i grupper 6 til 8 px |
+| 6 | Få skriftstørrelser i en klar rækkefølge | 13, 14, 15, 16, 19, 22 px; h2 var større end h1 og er rettet |
+| 7 | Navne i lokalet er læsbare | Mindst 13 px og altid inde i pladsen; hellere rulle lidt end ulæselig tekst |
+| 8 | Trykflader | 36 px med mus, 44 px på berøringsskærme (mindstekrav er 24 px) |
+| 9 | Kontrast og konsistens | axe: ingen fejl på 26 skærme |

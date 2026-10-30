@@ -53,9 +53,6 @@ export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: 
     <div>
       <div class="planhoved">
         <h1>{plan ? planTitel(plan.dato) : 'Ingen plan endnu'}</h1>
-        <button class="knap knap-stor" type="button" onClick={onRetLokale}>
-          Flyt borde
-        </button>
         <button class="knap knap-primaer knap-stor" type="button" onClick={nyPlan}>
           {k.kladde ? 'Fortsæt med kladden' : 'Lav ny plan'}
         </button>
@@ -71,12 +68,12 @@ export function PlanFane(props: { klasse: Klasse; lokale: Lokale; foersteGang?: 
       {k.kladde && (
         <p class="meddelelse meddelelse-bemaerk">Du har en kladde til en ny plan, som ikke er gemt endnu.</p>
       )}
-      {plan ? <GemtPlan klasse={k} onFane={props.onFane} /> : <p class="daempet">Tryk på "Lav ny plan" for at lave klassens første bordplan.</p>}
+      {plan ? <GemtPlan klasse={k} onFane={props.onFane} onRetLokale={onRetLokale} /> : <p class="daempet">Tryk på "Lav ny plan" for at lave klassens første bordplan.</p>}
     </div>
   );
 }
 
-function GemtPlan(props: { klasse: Klasse; onFane: (f: Fane) => void }) {
+function GemtPlan(props: { klasse: Klasse; onFane: (f: Fane) => void; onRetLokale: () => void }) {
   const k = props.klasse;
   const plan = k.planer[k.planer.length - 1]!;
   const navn = useNavne(k);
@@ -105,7 +102,12 @@ function GemtPlan(props: { klasse: Klasse; onFane: (f: Fane) => void }) {
           </button>
         </div>
       )}
-      <DelKnapper klasse={k} plan={plan} />
+      <DelKnapper klasse={k} plan={plan}>
+        <span class="afstand" />
+        <button class="knap" type="button" onClick={props.onRetLokale}>
+          Flyt borde
+        </button>
+      </DelKnapper>
       <Statusliste status={f.status} onFane={props.onFane} />
       <Lokaletegning lokale={plan.lokale} placering={plan.placering} navn={navn} overskrift="Bordplan" onFlytMobilskab={(p) => flytMobilskab(k, p)} />
       <Problemliste lokale={plan.lokale} problemer={f.borde} />
@@ -287,7 +289,13 @@ function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; f
   return (
     <div>
       <div class="planhoved">
-        <h1>{props.foersteGang ? 'Dit første forslag' : 'Ny plan'}</h1>
+        <div class="titel">
+          <h1>
+            {props.foersteGang ? 'Dit første forslag' : 'Ny plan'}
+            <span class="kladde-maerke">Kladde, ikke gemt</span>
+          </h1>
+          <p class="hjaelp">Tryk på to elever for at bytte dem, eller træk en elev hen på en anden plads.</p>
+        </div>
         <div class="datofelt">
           <label for="plandato">Gælder fra</label>
           <input
@@ -303,11 +311,6 @@ function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; f
         <button class="knap knap-primaer knap-stor" type="button" onClick={gem}>
           Gem plan
         </button>
-      </div>
-
-      <div class="kladde-banner">
-        <strong>Kladde. Ikke gemt endnu.</strong>
-        <span class="daempet">Tryk på to elever for at bytte dem, eller træk en elev hen på en anden plads.</span>
       </div>
 
       {fejl && (
