@@ -54,7 +54,8 @@ export interface Klasse {
   holdAdskilt: [ElevId, ElevId][];
   /** Faste pladser, som følger med fra plan til plan. Ingen begrundelse gemmes. */
   faste: Laas[];
-  lokale: Lokale;
+  /** null, indtil læreren har valgt et lokale. */
+  lokale: Lokale | null;
   /** Gemte planer, ældste først. */
   planer: Plan[];
   /** Forslag, der ikke er gemt endnu. */
@@ -73,6 +74,14 @@ export interface AppData {
   aktivKlasseId: string | null;
   /** Hvornår der sidst blev gemt en sikkerhedskopi (ISO-tidspunkt). */
   sidstEksporteret: string | null;
+}
+
+export function tomtAppData(): AppData {
+  return { version: 1, klasser: [], aktivKlasseId: null, sidstEksporteret: null };
+}
+
+export function nyKlasse(navn: string, elever: Elev[]): Klasse {
+  return { id: nyId(), navn, erDemo: false, elever, holdAdskilt: [], faste: [], lokale: null, planer: [], kladde: null };
 }
 
 export function nyId(): string {
