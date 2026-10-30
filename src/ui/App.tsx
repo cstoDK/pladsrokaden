@@ -5,21 +5,29 @@ import { Beskeder, Trinviser, useFokusPaaOverskrift } from './Faelles';
 import { Import } from './import/Import';
 import { type KontrolRaekke } from './import/Kontrol';
 import { KlasseVisning } from './Klasse';
+import { DataSide } from './DataSide';
 import { PrintArk } from './plan/Deling';
 import { aabnDemo, gemSikkerhedskopi, hentSikkerhedskopi, sletAlt } from '../app/handlinger';
 
 export function App() {
   const data = useData();
   const [nyKlasseAaben, setNyKlasseAaben] = useState(false);
+  const [dataAaben, setDataAaben] = useState(false);
+  const visData = () => {
+    setDataAaben(true);
+    window.scrollTo(0, 0);
+  };
   const aktiv = data.klasser.find((k) => k.id === data.aktivKlasseId) ?? data.klasser[0] ?? null;
 
-  useFokusPaaOverskrift(nyKlasseAaben ? 'ny' : aktiv ? `klasse-${aktiv.id}` : 'velkomst');
+  useFokusPaaOverskrift(dataAaben ? 'data' : nyKlasseAaben ? 'ny' : aktiv ? `klasse-${aktiv.id}` : 'velkomst');
 
   let indhold;
-  if (nyKlasseAaben) {
+  if (dataAaben) {
+    indhold = <DataSide onTilbage={() => setDataAaben(false)} />;
+  } else if (nyKlasseAaben) {
     indhold = <NyKlasse onFaerdig={() => setNyKlasseAaben(false)} kanAnnullere={data.klasser.length > 0} />;
   } else if (!aktiv) {
-    indhold = <Velkomst onStart={() => setNyKlasseAaben(true)} />;
+    indhold = <Velkomst onStart={() => setNyKlasseAaben(true)} onData={visData} />;
   } else {
     indhold = <KlasseVisning klasse={aktiv} />;
   }
@@ -32,7 +40,7 @@ export function App() {
       <header class="topbjaelke">
         <div class="topbjaelke-indre">
           <span class="logo">Pladsrokaden</span>
-          {data.klasser.length > 0 && !nyKlasseAaben && (
+          {data.klasser.length > 0 && !nyKlasseAaben && !dataAaben && (
             <div class="klassevaelger">
               <label for="klassevalg" class="skjult">
                 Klasse
@@ -42,6 +50,7 @@ export function App() {
                 value={aktiv?.id}
                 onChange={(e) => {
                   const id = e.currentTarget.value;
+                  setDataAaben(false);
                   opdater((d) => void (d.aktivKlasseId = id));
                 }}
               >
@@ -56,7 +65,7 @@ export function App() {
               </button>
             </div>
           )}
-          <Menu harKlasser={data.klasser.length > 0} onNyKlasse={() => setNyKlasseAaben(true)} />
+          <Menu harKlasser={data.klasser.length > 0} onNyKlasse={() => { setDataAaben(false); setNyKlasseAaben(true); }} onData={visData} />
         </div>
       </header>
       <main id="indhold" tabIndex={-1}>
@@ -69,7 +78,12 @@ export function App() {
         {indhold}
       </main>
       <footer class="sidefod">
-        <p>Alt gemmes automatisk i denne browser. Intet sendes nogen steder hen.</p>
+        <p>
+          Alt gemmes automatisk i denne browser. Intet sendes nogen steder hen.{' '}
+          <button class="knap-link" type="button" onClick={visData}>
+            Sådan håndteres data
+          </button>
+        </p>
       </footer>
       <Beskeder />
       <PrintArk />
@@ -77,7 +91,7 @@ export function App() {
   );
 }
 
-function Velkomst(props: { onStart: () => void }) {
+function Velkomst(props: { onStart: () => void; onData: () => void }) {
   return (
     <section class="smal">
       <h1>Bordplaner, der skifter retfærdigt</h1>
@@ -87,12 +101,17 @@ function Velkomst(props: { onStart: () => void }) {
         <li>alle skiftes til at sidde forrest,</li>
         <li>kønnene blandes ved bordene.</li>
       </ul>
-      <p>Alt bliver på din egen computer. Intet sendes nogen steder hen.</p>
+      <p>
+        Alt bliver på din egen computer. Intet sendes nogen steder hen.{' '}
+        <button class="knap-link" type="button" onClick={props.onData}>
+          Sådan håndteres data
+        </button>
+      </p>
       <div class="raekke">
         <button class="knap knap-primaer knap-stor" type="button" onClick={props.onStart}>
           Opret din første klasse
         </button>
-        <button class="knap knap-stor" type="button" onClick={aabnDemo}>
+        <button class="knap knap-stor" type="button" onClick={() => aabnDemo()}>
           Se en demoklasse
         </button>
       </div>
@@ -160,7 +179,7 @@ function NyKlasse(props: { onFaerdig: () => void; kanAnnullere: boolean }) {
   );
 }
 
-function Menu(props: { harKlasser: boolean; onNyKlasse: () => void }) {
+function Menu(props: { harKlasser: boolean; onNyKlasse: () => void; onData: () => void }) {
   const [aaben, setAaben] = useState(false);
   const rod = useRef<HTMLDivElement>(null);
   const knap = useRef<HTMLButtonElement>(null);
@@ -225,6 +244,7 @@ function Menu(props: { harKlasser: boolean; onNyKlasse: () => void }) {
           {props.harKlasser && punkt('Gem sikkerhedskopi', gemSikkerhedskopi)}
           {punkt('Hent sikkerhedskopi', () => fil.current?.click())}
           {punkt('Se demoklassen', aabnDemo)}
+          {punkt('Sådan håndteres data', props.onData)}
           {props.harKlasser && (
             <>
               <li>
