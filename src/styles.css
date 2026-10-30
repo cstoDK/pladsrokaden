@@ -206,6 +206,9 @@ progress { width: 100%; height: 0.75rem; accent-color: var(--accent); }
 }
 .koenvalg button + button { border-left: 1px solid var(--kant-staerk); }
 .koenvalg button[aria-pressed='true'] { background: var(--accent); color: #fff; }
+.koenvalg.tjek { border: 2px solid var(--bemaerk); background: var(--bemaerk-svag); }
+.koenvalg.tjek button { background: var(--bemaerk-svag); }
+.tjek-tekst { grid-column: 2 / -1; margin: -0.25rem 0 0; color: var(--bemaerk); font-weight: 700; font-size: 0.95rem; }
 
 .opsummering { display: flex; gap: 0.5rem 1.25rem; flex-wrap: wrap; margin: 0 0 1rem; color: var(--daempet); }
 .opsummering strong { color: var(--tekst); }
@@ -250,8 +253,7 @@ progress { width: 100%; height: 0.75rem; accent-color: var(--accent); }
   .kort { padding: 1rem; }
   .handlingsbar { margin: 1rem -1rem -1rem; }
   .kontrolliste li { grid-template-columns: 1.75rem 1fr auto; row-gap: 0.25rem; padding: 0.5rem 0; }
-  .kontrolliste .fjern { grid-column: 2; justify-self: start; margin-left: -0.5rem; }
-  .kontrolliste .feltfejl { grid-row: 2; }
+  .kontrolliste .fjern { grid-column: 2; grid-row: 2; justify-self: start; margin-left: -0.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

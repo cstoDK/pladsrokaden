@@ -28,7 +28,11 @@ export function DataSide(props: { onTilbage: () => void }) {
       <ul>
         <li>Klassens navn (fx 2.c).</li>
         <li>Elevernes fornavn. Har to elever samme fornavn, tilføjes forbogstavet i efternavnet (fx "Ida H.").</li>
-        <li>Køn som P (pige) eller D (dreng), hvis læreren angiver det. Det bruges kun til at blande bordene.</li>
+        <li>
+          Køn som P (pige) eller D (dreng). Det bruges kun til at blande bordene. Appen foreslår køn ud fra fornavnet med en
+          navneliste, der følger med appen, og læreren retter forslaget. Navne, der bruges til begge køn, eller som ikke står på
+          listen, gættes ikke.
+        </li>
         <li>Lokalets opstilling: antal borde, pladser og rækker.</li>
         <li>Bordplanerne med dato.</li>
         <li>Par af elever, der skal holdes adskilt, og elever med fast plads. Der gemmes ingen begrundelse.</li>

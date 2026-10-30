@@ -88,6 +88,10 @@ Bemærk: hvis mange borde tæller som forrest (fx 3 af 6 grupper), kan gentagne 
 
 `src/core/import.ts` finder fornavne i rodet tekst: tabulatorer og kolonner, overskrifter (Elev, Navn, Fornavn, Efternavn, Køn), "Efternavn, Fornavn", efternavne med versaler, navnepartikler (al-, de, van), og den smider klassekoder, numre, e-mails, datoer, CPR-lignende numre, menuord fra Ludus og Lectio samt udmeldte elever væk. HTML-tabeller fra udklipsholderen læses inaktivt. Tekst fra tekstgenkendelse renses for typiske fejl ("ldaTestesen" bliver til "Ida Testesen"). Kun fornavn, køn og højst to bogstaver af efternavnet (til dubletter) forlader modulet. Testene bruger realistiske, opdigtede eksempler.
 
+### Forslag til køn
+
+`src/core/koensgaet.ts` foreslår køn ud fra fornavnet med en kurateret navneliste i `src/core/navnedata.ts` (almindelige danske navne for årgangene i gymnasiet og navne, der er almindelige i de største indvandrergrupper). Navne, der bruges til begge køn (fx Kim, Robin, Alex, Isa, Nour), og ukendte navne gættes ikke. De markeres "Vælg køn" på kontrolskærmen. Et køn, læreren har valgt, eller som stod i den indsatte liste ("Ida P" eller en Køn-kolonne), overskrives aldrig. Listen kan udvides ved at tilføje navne i `navnedata.ts`. En test sikrer, at intet navn står som både pige- og drengenavn.
+
 ## Udgivelse
 
 ### GitHub Pages

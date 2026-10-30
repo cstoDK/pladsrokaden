@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { type Udtraek, navngivDubletter, retOcrTekst, udtraekFraLinjer, udtraekFraTekst } from '../../core/import';
-import { Kontrol, type KontrolRaekke, nyNoegle } from './Kontrol';
+import { Kontrol, type KontrolRaekke, medKoensforslag, nyNoegle } from './Kontrol';
 import { findBillede, genkendTekst, type OcrStatus } from './ocr';
 
 type Fane = 'tekst' | 'billede' | 'linjer';
@@ -27,17 +27,15 @@ export interface ImportProps {
 
 export function Import(props: ImportProps) {
   const [raekker, setRaekker] = useState<KontrolRaekke[] | null>(props.start && props.start.length > 0 ? props.start : null);
-  const [resultat, setResultat] = useState<{ fundet: number; sprungetOver: number } | null>(null);
+  const [resultat, setResultat] = useState<{ fundet: number; sprungetOver: number; gaettet: number; tvivl: number } | null>(null);
   const [henter, setHenter] = useState(raekker === null);
 
   function modtag(u: Udtraek) {
-    const nye: KontrolRaekke[] = navngivDubletter(u.elever).map((n, i) => ({
-      noegle: nyNoegle(),
-      navn: n.navn,
-      koen: u.elever[i]!.koen,
-    }));
+    const { raekker: nye, gaettet, tvivl } = medKoensforslag(
+      navngivDubletter(u.elever).map((n, i) => ({ noegle: nyNoegle(), navn: n.navn, koen: u.elever[i]!.koen })),
+    );
     setRaekker((gamle) => [...(gamle ?? []), ...nye]);
-    setResultat({ fundet: nye.length, sprungetOver: u.sprungetOver });
+    setResultat({ fundet: nye.length, sprungetOver: u.sprungetOver, gaettet, tvivl: tvivl.length });
     setHenter(false);
   }
 

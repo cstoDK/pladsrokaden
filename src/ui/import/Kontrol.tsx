@@ -3,6 +3,7 @@
 
 import { useRef, useState } from 'preact/hooks';
 import { findDubletter, navngivDubletter, rydNavn, udtraekFraLinjer } from '../../core/import';
+import { foreslaaKoen } from '../../core/koensgaet';
 import { type Koen } from '../../core/model';
 import { visBesked } from '../../app/tilstand';
 
@@ -12,6 +13,8 @@ export interface KontrolRaekke {
   elevId?: string;
   navn: string;
   koen: Koen;
+  /** Køn kunne ikke afgøres ud fra navnet, så læreren skal tage stilling. */
+  tjekKoen?: boolean;
 }
 
 let taeller = 0;
@@ -22,7 +25,7 @@ export function nyNoegle(): string {
 interface Props {
   raekker: KontrolRaekke[];
   setRaekker: (fn: (r: KontrolRaekke[] | null) => KontrolRaekke[]) => void;
-  resultat: { fundet: number; sprungetOver: number } | null;
+  resultat: { fundet: number; sprungetOver: number; gaettet: number; tvivl: number } | null;
   gemTekst: (antal: number) => string;
   onHentFlere: () => void;
   onGem: (r: KontrolRaekke[]) => void;
@@ -66,10 +69,7 @@ export function Kontrol(props: Props) {
     const u = udtraekFraLinjer(nyt);
     if (u.elever.length === 0) return;
     const navngivet = navngivDubletter(u.elever);
-    setRaekker((r) => [
-      ...(r ?? []),
-      ...navngivet.map((n, i) => ({ noegle: nyNoegle(), navn: n.navn, koen: u.elever[i]!.koen })),
-    ]);
+    setRaekker((r) => [...(r ?? []), ...medKoensforslag(navngivet.map((n, i) => ({ noegle: nyNoegle(), navn: n.navn, koen: u.elever[i]!.koen }))).raekker]);
     setNyt('');
   }
 
@@ -99,11 +99,22 @@ export function Kontrol(props: Props) {
           Fandt {props.resultat.fundet} {props.resultat.fundet === 1 ? 'navn' : 'navne'}.
           {props.resultat.sprungetOver > 0 &&
             ` ${props.resultat.sprungetOver} ${props.resultat.sprungetOver === 1 ? 'linje' : 'linjer'} med overskrifter, numre og lignende blev sprunget over.`}
+          {props.resultat.gaettet > 0 && ` Køn er sat ud fra navnet ved ${props.resultat.gaettet}.`}
+        </p>
+      )}
+      {raekker.some((r) => r.tjekKoen && !r.koen) && (
+        <p class="meddelelse meddelelse-bemaerk">
+          Køn kunne ikke afgøres ud fra navnet ved{' '}
+          {raekker
+            .filter((r) => r.tjekKoen && !r.koen)
+            .map((r) => r.navn)
+            .join(', ')}
+          . De er markeret herunder. Tryk P eller D.
         </p>
       )}
       <p class="daempet">
-        Ret navnene, hvis noget er forkert, og tryk P for pige eller D for dreng. Kønnet bruges kun til at blande bordene. Kun
-        fornavnet gemmes.
+        Ret navnene, hvis noget er forkert. Køn er foreslået ud fra navnet; tryk P for pige eller D for dreng for at rette. Kønnet
+        bruges kun til at blande bordene. Kun fornavnet gemmes.
       </p>
       <p class="opsummering" aria-live="polite">
         <span>
@@ -126,6 +137,7 @@ export function Kontrol(props: Props) {
         {raekker.map((r, i) => {
           const dublet = dubletter.has(i);
           const fejlId = `dublet-${r.noegle}`;
+          const tjek = !!r.tjekKoen && !r.koen;
           return (
             <li key={r.noegle}>
               <span class="nr" aria-hidden="true">
@@ -141,7 +153,11 @@ export function Kontrol(props: Props) {
                 spellcheck={false}
                 onInput={(e) => opdater(r.noegle, { navn: e.currentTarget.value })}
               />
-              <span class="koenvalg" role="group" aria-label={`Køn for ${r.navn || `elev ${i + 1}`}`}>
+              <span
+                class={`koenvalg${tjek ? ' tjek' : ''}`}
+                role="group"
+                aria-label={`Køn for ${r.navn || `elev ${i + 1}`}${tjek ? ', skal vælges' : ''}`}
+              >
                 <button type="button" aria-pressed={r.koen === 'P'} aria-label="Pige" title="Pige" onClick={() => opdater(r.noegle, { koen: r.koen === 'P' ? null : 'P' })}>
                   P
                 </button>
@@ -152,6 +168,7 @@ export function Kontrol(props: Props) {
               <button type="button" class="knap knap-tekst fjern" aria-label={`Fjern ${r.navn || `elev ${i + 1}`}`} onClick={() => fjern(i)}>
                 Fjern
               </button>
+              {tjek && <p class="tjek-tekst">Vælg køn. Navnet siger ikke sikkert, om det er en pige eller en dreng.</p>}
               {dublet && (
                 <p class="feltfejl" id={fejlId}>
                   Der er flere, der hedder {r.navn.trim()}. Tilføj forbogstav i efternavnet, fx "{r.navn.trim()} H."
@@ -195,4 +212,10 @@ export function Kontrol(props: Props) {
       </div>
     </section>
   );
+}
+
+/** Foreslår køn ud fra navnet ved rækker uden køn og markerer dem, der ikke kan afgøres. */
+export function medKoensforslag(raekker: KontrolRaekke[]) {
+  const r = foreslaaKoen(raekker);
+  return { ...r, raekker: r.raekker.map((x) => (x.koen ? x : { ...x, tjekKoen: true })) };
 }

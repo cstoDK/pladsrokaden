@@ -4,6 +4,7 @@
 import { useState } from 'preact/hooks';
 import { findDubletter, rydNavn } from '../../core/import';
 import { gyldigeLaase } from '../../core/kladde';
+import { foreslaaKoen } from '../../core/koensgaet';
 import { type ElevId, type Klasse, bordNummer, nyId } from '../../core/model';
 import { medFortryd, opdaterKlasse } from '../../app/tilstand';
 import { Import } from '../import/Import';
@@ -101,6 +102,26 @@ function Elevliste(props: { klasse: Klasse; onTilfoej: () => void }) {
         )}
       </p>
       <p class="hjaelp">Ændringer gemmes med det samme. P er pige, D er dreng.</p>
+      {k.elever.length - piger - drenge > 0 && (
+        <p>
+          <button
+            class="knap"
+            type="button"
+            onClick={() => {
+              const r = foreslaaKoen(k.elever);
+              const tekst =
+                (r.gaettet > 0 ? `Køn er sat ud fra navnet ved ${r.gaettet}.` : 'Intet køn kunne afgøres ud fra navnene.') +
+                (r.tvivl.length > 0 ? ` Vælg selv ved ${r.tvivl.join(', ')}.` : '');
+              medFortryd(tekst, (d) => {
+                const x = d.klasser.find((y) => y.id === k.id);
+                if (x) x.elever = foreslaaKoen(x.elever).raekker;
+              });
+            }}
+          >
+            Foreslå køn ud fra navnene
+          </button>
+        </p>
+      )}
       <ol class="kontrolliste">
         {k.elever.map((e, i) => {
           const dublet = dubletter.has(i);
