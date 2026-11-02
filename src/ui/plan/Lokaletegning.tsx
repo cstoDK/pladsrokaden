@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { type Plads } from '../../core/kladde';
-import { type ElevId, type Lokale, type Placering, MOBILSKAB, PLADSDYBDE, bordBredde, bordHoejde, forresteBorde } from '../../core/model';
+import { type ElevId, type Lokale, type Placering, PLADSDYBDE, bordBredde, bordHoejde, forresteBorde, skabMaal } from '../../core/model';
 import { pladsGrupper, planGrupper } from '../../core/struktur';
 
 export interface Redigering {
@@ -196,8 +196,8 @@ export function Lokaletegning(props: Props) {
           (props.onFlytMobilskab ? (
             <button
               type="button"
-              class="mobilskab flytbar"
-              style={pos((skab ?? lokale.mobilskab).x, (skab ?? lokale.mobilskab).y, MOBILSKAB.bredde, MOBILSKAB.hoejde)}
+              class={`mobilskab flytbar${lokale.mobilskab.lodret ? ' lodret' : ''}`}
+              style={pos((skab ?? lokale.mobilskab).x, (skab ?? lokale.mobilskab).y, skabMaal(lokale.mobilskab).bredde, skabMaal(lokale.mobilskab).hoejde)}
               aria-label="Mobilskab. Træk det, eller flyt det med piletasterne."
               title="Træk mobilskabet derhen, hvor det står"
               onPointerDown={(e) => {
@@ -213,7 +213,8 @@ export function Lokaletegning(props: Props) {
                 const nx = Math.max(0, Math.round((t.fra.x + (e.clientX - t.x0) / u) * 2) / 2);
                 const ny = Math.max(0, Math.round((t.fra.y + (e.clientY - t.y0) / u) * 2) / 2);
                 t.flyttet = true;
-                setSkab({ x: Math.min(nx, lokale.bredde - MOBILSKAB.bredde), y: Math.min(ny, lokale.hoejde - MOBILSKAB.hoejde) });
+                const sm = skabMaal(lokale.mobilskab!);
+                setSkab({ x: Math.min(nx, lokale.bredde - sm.bredde), y: Math.min(ny, lokale.hoejde - sm.hoejde) });
               }}
               onPointerUp={() => {
                 const t = skabTraek.current;
@@ -237,7 +238,7 @@ export function Lokaletegning(props: Props) {
               Mobilskab
             </button>
           ) : (
-            <div class="mobilskab" style={pos(lokale.mobilskab.x, lokale.mobilskab.y, MOBILSKAB.bredde, MOBILSKAB.hoejde)}>
+            <div class={`mobilskab${lokale.mobilskab.lodret ? ' lodret' : ''}`} style={pos(lokale.mobilskab.x, lokale.mobilskab.y, skabMaal(lokale.mobilskab).bredde, skabMaal(lokale.mobilskab).hoejde)}>
               Mobilskab
             </div>
           ))}

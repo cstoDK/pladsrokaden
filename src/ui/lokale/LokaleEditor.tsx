@@ -18,7 +18,7 @@ import {
   sugSammen,
   tilpasStoerrelse,
 } from '../../core/lokale';
-import { type Bord, type Klasse, type Lokale, type Vaeg, MOBILSKAB, antalPladser, bordBredde, bordHoejde, bordRaekker, forresteBorde, nyId } from '../../core/model';
+import { type Bord, type Klasse, type Lokale, type Vaeg, antalPladser, bordBredde, bordHoejde, bordRaekker, forresteBorde, nyId, skabMaal } from '../../core/model';
 import { belaegning } from '../../core/optimering';
 import { opdater, useData } from '../../app/tilstand';
 import { Tavle, pos } from '../plan/Lokaletegning';
@@ -445,8 +445,8 @@ function RumEditor(props: {
           {l.mobilskab && (
             <button
               type="button"
-              class={`flytbar mobilskab${valgt?.type === 'skab' ? ' valgt' : ''}`}
-              style={pos(l.mobilskab.x, l.mobilskab.y, MOBILSKAB.bredde, MOBILSKAB.hoejde)}
+              class={`flytbar mobilskab${l.mobilskab.lodret ? ' lodret' : ''}${valgt?.type === 'skab' ? ' valgt' : ''}`}
+              style={pos(l.mobilskab.x, l.mobilskab.y, skabMaal(l.mobilskab).bredde, skabMaal(l.mobilskab).hoejde)}
               aria-label="Mobilskab. Flyt med piletasterne."
               onPointerDown={(e) => startTraek(e, { type: 'skab' })}
               onPointerMove={(e) => under(e, { type: 'skab' })}
@@ -501,6 +501,17 @@ function RumEditor(props: {
       {valgt?.type === 'skab' && (
         <div class="panel" role="group" aria-label="Mobilskab">
           <h3>Mobilskab</h3>
+          <button
+            class="knap"
+            type="button"
+            onClick={() =>
+              medKopi((k) => {
+                if (k.mobilskab) k.mobilskab.lodret = !k.mobilskab.lodret;
+              }, 'Mobilskabet er drejet.')
+            }
+          >
+            Drej mobilskabet
+          </button>{' '}
           <button
             class="knap knap-fare"
             type="button"

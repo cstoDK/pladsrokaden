@@ -529,6 +529,8 @@ body.tavle-aaben { overflow: hidden; }
 .mellemoverskrift { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; }
 
 .mobilskab { z-index: 3; }
+/* Drejet mobilskab på en sidevæg: teksten løber langs skabet. */
+.mobilskab.lodret { writing-mode: vertical-rl; }
 .afkryds { display: flex; align-items: center; gap: 0.5rem; font-weight: 400; min-height: var(--trykflade); margin: 0.5rem 0; }
 .afkryds input { width: 1.25rem; height: 1.25rem; accent-color: var(--accent); }
 .flytbar.bord:hover { box-shadow: 0 0 0 3px var(--accent-svag); }

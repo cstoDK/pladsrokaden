@@ -408,10 +408,10 @@ function Problemliste(props: { lokale: Lokale; problemer: Record<string, BordPro
 function flytMobilskab(k: Klasse, pos: { x: number; y: number }) {
   opdater((d) => {
     const lokale = d.lokaler.find((l) => l.id === k.lokaleId);
-    if (lokale?.mobilskab) lokale.mobilskab = { ...pos };
+    if (lokale?.mobilskab) Object.assign(lokale.mobilskab, pos);
     const x = d.klasser.find((y) => y.id === k.id);
     const plan = x?.planer[x.planer.length - 1];
-    if (plan?.lokale.mobilskab) plan.lokale.mobilskab = { ...pos };
-    if (x?.kladde?.plan.lokale.mobilskab) x.kladde.plan.lokale.mobilskab = { ...pos };
+    if (plan?.lokale.mobilskab) Object.assign(plan.lokale.mobilskab, pos);
+    if (x?.kladde?.plan.lokale.mobilskab) Object.assign(x.kladde.plan.lokale.mobilskab, pos);
   });
 }

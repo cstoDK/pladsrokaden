@@ -46,7 +46,8 @@ export interface Lokale {
   /** Tavlen står ved en væg. `midte` er midten langs væggen (i pladser). */
   tavle: { vaeg: Vaeg; midte: number; laengde: number };
   /** Mobilskabets øverste venstre hjørne, eller null hvis der ikke er et. */
-  mobilskab: { x: number; y: number } | null;
+  /** Mobilskabet; lodret, når det hænger på en sidevæg. */
+  mobilskab: { x: number; y: number; lodret?: boolean } | null;
 }
 
 /** Hvem sidder på hvilken plads. Listen har én post pr. plads; null er en tom plads. */
@@ -117,6 +118,11 @@ export function nyId(): string {
 
 export const PLADSDYBDE = 0.6;
 export const MOBILSKAB = { bredde: 2, hoejde: 0.7 };
+
+/** Mobilskabets mål, som det står (drejet eller ej). */
+export function skabMaal(m: { lodret?: boolean }): { bredde: number; hoejde: number } {
+  return m.lodret ? { bredde: MOBILSKAB.hoejde, hoejde: MOBILSKAB.bredde } : MOBILSKAB;
+}
 
 export function bordBredde(b: Bord): number {
   return b.lodret ? 1 : b.pladser;

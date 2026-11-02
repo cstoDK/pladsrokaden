@@ -15,6 +15,13 @@ describe('sikkerhedskopi', () => {
     expect(r).toEqual({ klasser: d.klasser, lokaler: d.lokaler });
   });
 
+  it('husker, at mobilskabet er drejet', () => {
+    const d = data();
+    d.lokaler[0]!.mobilskab = { x: 0.5, y: 2, lodret: true };
+    const r = fraFil(tilFil(d));
+    expect('lokaler' in r && r.lokaler[0]!.mobilskab?.lodret).toBe(true);
+  });
+
   it('smider ukendte felter væk (fx efternavne eller noter)', () => {
     const fil = JSON.parse(tilFil(data()));
     fil.klasser[0].elever[0].efternavn = 'Hemmelig';

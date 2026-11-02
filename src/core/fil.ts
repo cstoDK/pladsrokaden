@@ -218,7 +218,7 @@ function laesLokale(x: unknown): Lokale | null {
       midte: tal(t['midte'], 0, 600) ? t['midte'] : 5,
       laengde: tal(t['laengde'], 1, 60) ? t['laengde'] : 6,
     },
-    mobilskab: m && tal(m['x'], 0, 600) && tal(m['y'], 0, 600) ? { x: m['x'], y: m['y'] } : null,
+    mobilskab: m && tal(m['x'], 0, 600) && tal(m['y'], 0, 600) ? { x: m['x'], y: m['y'], ...(m['lodret'] === true ? { lodret: true } : {}) } : null,
   };
 }
 

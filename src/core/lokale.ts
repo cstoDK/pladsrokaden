@@ -1,7 +1,7 @@
 // Lokaler: skabeloner, automatisk størrelse og nummerering af borde, og
 // konvertering af lokaler fra den første version af appen.
 
-import { type Bord, type Lokale, MOBILSKAB, afstandTilTavle, bordBredde, bordHoejde, bordRaekker, nyId } from './model';
+import { type Bord, type Lokale, afstandTilTavle, skabMaal, bordBredde, bordHoejde, bordRaekker, nyId } from './model';
 
 export type SkabelonId = 'raekker' | 'fire' | 'par';
 
@@ -86,8 +86,9 @@ export function tilpasStoerrelse(l: Lokale): void {
     h = Math.max(h, bord.y + bordHoejde(bord) + MARGIN);
   }
   if (l.mobilskab) {
-    b = Math.max(b, l.mobilskab.x + MOBILSKAB.bredde + 0.5);
-    h = Math.max(h, l.mobilskab.y + MOBILSKAB.hoejde + 0.5);
+    const sm = skabMaal(l.mobilskab);
+    b = Math.max(b, l.mobilskab.x + sm.bredde + 0.5);
+    h = Math.max(h, l.mobilskab.y + sm.hoejde + 0.5);
   }
   const langsVaeg = l.tavle.vaeg === 'top' || l.tavle.vaeg === 'bund';
   if (langsVaeg) b = Math.max(b, l.tavle.laengde + 2);
@@ -159,11 +160,12 @@ export function fraDybeBorde(l: Lokale): void {
 export function flytMobilskabFri(l: Lokale): void {
   const m = l.mobilskab;
   if (!m) return;
+  const sm = skabMaal(m);
   const overlapper = (x: number, y: number) =>
-    l.borde.some((b) => x < b.x + bordBredde(b) && b.x < x + MOBILSKAB.bredde && y < b.y + bordHoejde(b) && b.y < y + MOBILSKAB.hoejde);
+    l.borde.some((b) => x < b.x + bordBredde(b) && b.x < x + sm.bredde && y < b.y + bordHoejde(b) && b.y < y + sm.hoejde);
   if (!overlapper(m.x, m.y)) return;
   const bagest = l.tavle.vaeg === 'bund' ? 0.5 : Math.max(0, ...l.borde.map((b) => b.y + bordHoejde(b))) + 0.6;
-  l.mobilskab = { x: MARGIN, y: bagest };
+  l.mobilskab = { ...m, x: MARGIN, y: bagest };
   if (overlapper(l.mobilskab.x, l.mobilskab.y)) l.mobilskab.y = Math.max(0, ...l.borde.map((b) => b.y + bordHoejde(b))) + 0.6;
   tilpasStoerrelse(l);
 }
