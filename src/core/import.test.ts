@@ -291,3 +291,28 @@ describe('findDubletter og rydNavn', () => {
     expect(rydNavn('sara al Fiktiv')).toBe('Sara al Fiktiv');
   });
 });
+
+describe('Ludus-deltagerliste som CSV eller kopieret tabel', () => {
+  // Samme opbygning som Ludus' "Deltagerliste" (opdigtede navne og tal).
+  const csv = [
+    'K.nr.;K.id.;Fornavn;Efternavn;Tilmeldt;Ophørt;Pause;Bemærkning;F.dato',
+    '11111;;Anna Marie;Testesen;26.10.26;;;;010110',
+    '22222;;Bo Emil Bruun;Prøvesen;26.10.26;;;;020210',
+    '33333;;Mikael-Eric Tolu;Eksempel;27.10.26;;;;030310',
+    '44444;;Nellie;Hansen;26.10.26;;;;040410',
+    '',
+  ].join('\n');
+
+  it('læser semikolon-CSV og beholder kun fornavnet', () => {
+    const u = udtraekFraTekst(csv);
+    expect(u.elever.map((e) => e.fornavn)).toEqual(['Anna', 'Bo', 'Mikael-Eric', 'Nellie']);
+    expect(u.sprungetOver).toBe(1);
+    // Fødselsdato og kursistnummer kommer aldrig med.
+    expect(JSON.stringify(u)).not.toMatch(/010110|11111/);
+  });
+
+  it('læser den samme liste kopieret fra Ludus (tabulatorer)', () => {
+    const u = udtraekFraTekst(csv.replace(/;/g, '\t'));
+    expect(u.elever.map((e) => e.fornavn)).toEqual(['Anna', 'Bo', 'Mikael-Eric', 'Nellie']);
+  });
+});

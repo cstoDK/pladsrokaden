@@ -10,7 +10,7 @@ import { findBillede, genkendTekst, type OcrStatus } from './ocr';
 type Fane = 'tekst' | 'billede' | 'linjer';
 
 const FANER: { id: Fane; navn: string }[] = [
-  { id: 'tekst', navn: 'Indsæt liste' },
+  { id: 'tekst', navn: 'Liste eller fil' },
   { id: 'billede', navn: 'Skærmbillede' },
   { id: 'linjer', navn: 'Skriv navne' },
 ];
@@ -79,7 +79,7 @@ export function Hent(props: { onUdtraek: (u: Udtraek) => void; onTilbage?: () =>
     if (u.elever.length === 0) {
       setFejl(
         kilde === 'billede'
-          ? 'Der blev ikke fundet nogen navne i billedet. Prøv et skarpere skærmbillede, hvor navnene fylder mere, eller brug "Indsæt liste".'
+          ? 'Der blev ikke fundet nogen navne i billedet. Prøv et skarpere skærmbillede, hvor navnene fylder mere, eller brug "Liste eller fil".'
           : kilde === 'linjer'
             ? 'Der er ingen navne endnu. Skriv ét navn pr. linje.'
             : 'Der blev ikke fundet nogen navne i teksten. Prøv at kopiere hele listen igen, eller skriv navnene ét pr. linje under "Skriv navne".',
@@ -98,8 +98,10 @@ export function Hent(props: { onUdtraek: (u: Udtraek) => void; onTilbage?: () =>
     try {
       const tekst = await genkendTekst(fil, setOcr);
       udtraek(udtraekFraTekst(retOcrTekst(tekst)), 'billede');
-    } catch {
-      setFejl('Billedet kunne ikke læses. Prøv et andet billede, eller brug "Indsæt liste".');
+    } catch (e) {
+      // Den tekniske årsag vises (og bliver på computeren), så den kan sendes videre.
+      const aarsag = e instanceof Error ? e.message : String(e);
+      setFejl(`Billedet kunne ikke læses. Brug i stedet "Liste eller fil", hvor du kan vælge deltagerlisten fra Ludus som fil. (Teknisk årsag: ${aarsag.slice(0, 160)})`);
     } finally {
       // Billedet glemmes, så snart teksten er læst.
       URL.revokeObjectURL(url);
@@ -108,12 +110,20 @@ export function Hent(props: { onUdtraek: (u: Udtraek) => void; onTilbage?: () =>
     }
   }
 
-  // Ctrl+V virker overalt på siden: et billede læses, tekst udtrækkes.
+  // Ctrl+V (Cmd+V) virker overalt på siden: et billede eller en fil læses, tekst udtrækkes.
   useEffect(() => {
     const ved = (e: ClipboardEvent) => {
       if (ocr) return;
       const mål = e.target as HTMLElement | null;
       if (mål?.id === 'linjer-felt') return; // "Skriv navne" bruger almindelig indsætning
+      // En CSV-fil kopieret i Finder eller Stifinder.
+      const fil = Array.from(e.clipboardData?.files ?? []).find((f) => /\.(csv|txt|tsv)$/i.test(f.name));
+      if (fil) {
+        e.preventDefault();
+        setFane('tekst');
+        void fil.arrayBuffer().then((d) => udtraek(udtraekFraTekst(laesTekstfil(d)), 'tekst'));
+        return;
+      }
       const billede = findBillede(e.clipboardData);
       if (billede) {
         e.preventDefault();
@@ -199,12 +209,52 @@ export function Hent(props: { onUdtraek: (u: Udtraek) => void; onTilbage?: () =>
 
 function TekstPanel(props: { onTekst: (t: string) => void }) {
   const [tekst, setTekst] = useState('');
+  const [filfejl, setFilfejl] = useState<string | null>(null);
+  const filRef = useRef<HTMLInputElement>(null);
+  async function vaelgFil(f: File) {
+    setFilfejl(null);
+    if (/\.(xlsx?|numbers|ods)$/i.test(f.name)) {
+      setFilfejl('Regneark kan ikke læses direkte. Gem det som CSV (i Excel: Filer, Gem som, CSV), eller hent deltagerlisten som CSV i Ludus.');
+      return;
+    }
+    // Filen læses kun her i browseren og gemmes ikke; kun fornavnene bruges.
+    props.onTekst(laesTekstfil(await f.arrayBuffer()));
+  }
   return (
     <div class="stak">
+      <div class="raekke">
+        <button class="knap" type="button" onClick={() => filRef.current?.click()}>
+          Vælg fil (CSV)
+        </button>
+        <span class="hjaelp" style={{ margin: 0 }}>
+          Fx deltagerlisten fra Ludus. Filen læses kun på din computer, og kun fornavnene bruges.
+        </span>
+        <input
+          ref={filRef}
+          type="file"
+          accept=".csv,.txt,.tsv,text/csv,text/plain"
+          class="skjult"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={(e) => {
+            const f = e.currentTarget.files?.[0];
+            e.currentTarget.value = '';
+            if (f) void vaelgFil(f);
+          }}
+        />
+      </div>
+      {filfejl && (
+        <p class="meddelelse meddelelse-fejl" role="alert">
+          {filfejl}
+        </p>
+      )}
+      <p class="hjaelp" style={{ margin: 0 }}>
+        Eller kopiér listen direkte:
+      </p>
       <ol class="hjaelp" style={{ paddingLeft: '1.25rem' }}>
         <li>Åbn klasselisten i Ludus eller Lectio.</li>
-        <li>Markér det hele med Ctrl+A (Cmd+A på Mac), og kopiér med Ctrl+C.</li>
-        <li>Klik i feltet herunder, og indsæt med Ctrl+V. Appen finder selv fornavnene.</li>
+        <li>Markér det hele med {GENVEJ}+A, og kopiér med {GENVEJ}+C.</li>
+        <li>Klik i feltet herunder, og indsæt med {GENVEJ}+V. Appen finder selv fornavnene.</li>
       </ol>
       <div>
         <label for="tekst-felt">Klasselisten</label>
@@ -239,7 +289,7 @@ function BilledPanel(props: { ocr: OcrStatus | null; billedUrl: string | null; o
     <div class="stak">
       <p class="lokalt">Billedet behandles kun på din computer</p>
       <p class="hjaelp">
-        Tag et skærmbillede af klasselisten, og indsæt det med Ctrl+V. Du kan også trække billedet herind. Billedet sendes ikke
+        Tag et skærmbillede af klasselisten, og indsæt det med {GENVEJ}+V. Du kan også trække billedet herind. Billedet sendes ikke
         nogen steder hen og gemmes ikke.
       </p>
       <div
@@ -268,7 +318,7 @@ function BilledPanel(props: { ocr: OcrStatus | null; billedUrl: string | null; o
         ) : (
           <div class="stak">
             <p style={{ margin: 0 }}>
-              <strong>Indsæt (Ctrl+V) eller træk et billede herind</strong>
+              <strong>Indsæt ({GENVEJ}+V) eller træk et billede herind</strong>
             </p>
             <div>
               <button class="knap" type="button" onClick={() => filRef.current?.click()}>
@@ -333,6 +383,21 @@ function LinjePanel(props: { onTekst: (t: string) => void }) {
  * webside), laves den om til tabulator-adskilte rækker, som giver det
  * sikreste udtræk. HTML'en fortolkes inaktivt: intet hentes eller køres.
  */
+/** Ctrl på Windows, Cmd på Mac. */
+export const GENVEJ = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? 'Cmd' : 'Ctrl';
+
+/**
+ * Læser en tekstfil. CSV fra Ludus og dansk Excel er ofte i Windows-1252
+ * (ikke UTF-8), så æ, ø og å ellers bliver til tegnfejl.
+ */
+export function laesTekstfil(data: ArrayBuffer): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(data);
+  } catch {
+    return new TextDecoder('windows-1252').decode(data);
+  }
+}
+
 export function tekstFraUdklip(data: DataTransfer | null): string {
   if (!data) return '';
   const html = data.getData('text/html');

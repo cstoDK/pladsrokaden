@@ -81,7 +81,11 @@ export function normaliserHold(tekst: string): string | undefined {
   return m ? `GF${m[1]!.padStart(2, '0')}` : undefined;
 }
 
-const HEADER: Record<string, 'fornavn' | 'efternavn' | 'navn' | 'koen' | 'hold'> = {
+const HEADER: Record<string, 'fornavn' | 'efternavn' | 'navn' | 'koen' | 'hold' | 'andet'> = {
+  // Kendte kolonner fra Ludus og Lectio, som ikke bruges (og aldrig gemmes).
+  knr: 'andet', kid: 'andet', nr: 'andet', id: 'andet', tilmeldt: 'andet', ophørt: 'andet', pause: 'andet', bemærkning: 'andet',
+  fdato: 'andet', fødselsdato: 'andet', født: 'andet', cpr: 'andet', 'cpr-nr': 'andet', elevnummer: 'andet', elevnr: 'andet',
+  email: 'andet', 'e-mail': 'andet', mail: 'andet', klasse: 'andet', status: 'andet', alder: 'andet', telefon: 'andet', mobil: 'andet',
   'gf-klasse': 'hold', 'gf klasse': 'hold', 'gf-hold': 'hold', 'gf hold': 'hold', gf: 'hold', grundforløb: 'hold', grundforløbshold: 'hold',
   fornavn: 'fornavn', fornavne: 'fornavn', 'first name': 'fornavn', kaldenavn: 'fornavn',
   efternavn: 'efternavn', efternavne: 'efternavn', 'last name': 'efternavn',
@@ -100,14 +104,17 @@ export function udtraekFraTekst(tekst: string): Udtraek {
   const medTab = linjer.filter((l) => l.includes('\t')).length;
   const medMellemrum = linjer.filter((l) => /\S {2,}\S/.test(l)).length;
   let opdel: ((l: string) => string[]) | null = null;
+  const medSemikolon = linjer.filter((l) => l.includes(';')).length;
   if (medTab >= 2 && medTab >= linjer.length * 0.3) opdel = (l) => l.split('\t').map((c) => c.trim());
+  // CSV fra Ludus og dansk Excel bruger semikolon; felter kan stå i anførselstegn.
+  else if (medSemikolon >= 2 && medSemikolon >= linjer.length * 0.5) opdel = (l) => l.split(';').map((c) => c.trim().replace(/^"(.*)"$/, '$1').trim());
   else if (medMellemrum >= 2 && medMellemrum >= linjer.length * 0.5) opdel = (l) => l.trim().split(/\s{2,}/);
 
   const elever: UdtrukketElev[] = [];
   let sprungetOver = 0;
 
   if (opdel) {
-    const raekker = linjer.map((l) => (l.includes('\t') || /\S {2,}\S/.test(l) ? opdel!(l) : [l.trim()]));
+    const raekker = linjer.map((l) => (l.includes('\t') || l.includes(';') || /\S {2,}\S/.test(l) ? opdel!(l) : [l.trim()]));
     const kolonner = findKolonner(raekker);
     raekker.forEach((celler, i) => {
       if (i === kolonner.headerRaekke) {

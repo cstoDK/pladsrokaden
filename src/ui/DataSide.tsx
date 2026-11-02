@@ -48,15 +48,16 @@ export function DataSide(props: { onTilbage: () => void }) {
           Efternavne og mellemnavne (ud over et forbogstav ved dubletter), elevnumre, kursistnumre, CPR-numre, fødselsdatoer, e-mails,
           adresser og valgfag eller sprog.
         </li>
-        <li>Indsat tekst og skærmbilleder fra Ludus, Lectio eller andre systemer.</li>
+        <li>Indsat tekst, CSV-filer og skærmbilleder fra Ludus, Lectio eller andre systemer.</li>
         <li>Fritekst om elever. Der findes ingen felter til noter eller begrundelser.</li>
       </ul>
 
       <h2>Datastrømme</h2>
       <ol>
         <li>
-          <strong>Indsat klasseliste.</strong> Teksten behandles i browserens hukommelse. Fornavnene trækkes ud, og resten smides væk med
-          det samme. Teksten gemmes ikke og sendes ikke nogen steder hen.
+          <strong>Indsat klasseliste eller CSV-fil.</strong> Teksten eller filen (fx Ludus' deltagerliste) læses i browserens
+          hukommelse. Fornavnene trækkes ud, og resten, fx efternavne, kursistnumre og fødselsdatoer, smides væk med det samme. Hverken
+          teksten eller filen gemmes eller sendes nogen steder hen.
         </li>
         <li>
           <strong>Skærmbillede.</strong> Billedet læses af tekstgenkendelse (Tesseract), som kører i browseren på din computer.

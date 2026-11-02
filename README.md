@@ -6,7 +6,7 @@ Appen er en ren statisk side. Alt kører i browseren, og elevdata forlader aldri
 
 ## Sådan bruges den
 
-1. **Elever:** kopiér hele klasselisten fra Ludus eller Lectio, og indsæt den (Ctrl+V). Du kan også indsætte et skærmbillede eller skrive navnene. Køn foreslås ud fra navnet; ret det med ét tryk.
+1. **Elever:** vælg deltagerlisten fra Ludus som CSV-fil, eller kopiér hele klasselisten fra Ludus eller Lectio og indsæt den (Ctrl+V / Cmd+V). Du kan også indsætte et skærmbillede eller skrive navnene. Køn foreslås ud fra navnet; ret det med ét tryk.
 2. **Lokale:** vælg lokalet efter nummer (fx 205), eller byg et nyt ud fra en opstilling (lange rækker, borde à 4, borde à 2). Træk borde, tavle og mobilskab på plads. Lokalet huskes og kan bruges af alle dine klasser.
 3. **Første plan:** forslaget laves med det samme, inddelt i netværksgrupper og makkerpar. Byt elever ved at trykke på to, eller træk dem. Tryk "Gem plan".
 
