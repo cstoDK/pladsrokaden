@@ -435,10 +435,9 @@ body.tavle-aaben { overflow: hidden; }
   body { background: #fff; font-size: 12pt; }
   .spring-til, .topbjaelke, main, .sidefod, .beskeder, .tavlevisning { display: none !important; }
   .print-ark { display: block; }
-  .print-side { break-after: page; }
-  .print-side:last-child { break-after: auto; }
-  .print-hoved { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4mm; font-size: 14pt; }
-  .print-hoved strong { font-size: 20pt; }
+  .print-side { break-inside: avoid; }
+  .print-hoved { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4mm; font-size: 12pt; }
+  .print-hoved strong { font-size: 16pt; }
   .lokale.print { overflow: visible; padding: 0; }
   .lokale.print .rum { border-color: #000; }
   .lokale.print .bord { border-color: #000; box-shadow: none; }
@@ -447,8 +446,16 @@ body.tavle-aaben { overflow: hidden; }
   .lokale.print .rul-hint { display: none; }
   .lokale.print .tavle { background: #fff; color: #000; border: 2px solid #000; }
   .lokale.print .plads, .gruppeoversigt li { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .gruppeoversigt { grid-template-columns: repeat(4, 1fr); gap: 4mm; font-size: 13pt; }
-  .gruppeoversigt h3 { font-size: 12pt; }
+  .lokale.print { display: flex; justify-content: center; margin-bottom: 4mm; }
+  .print-grupper { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 8mm; font-size: 9pt; line-height: 1.3; }
+  .print-grupper li { break-inside: avoid; padding: 0.5mm 0; }
+  .print-farve { display: inline-block; width: 3mm; height: 3mm; border: 1px solid #555; border-radius: 1px; margin-right: 1.5mm; vertical-align: -0.3mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* Et ark pr. papirretning; browseren viser det, der passer. */
+  .print-hoej { display: none; }
+}
+@media print and (orientation: portrait) {
+  .print-tvaers { display: none; }
+  .print-hoej { display: block; }
 }
 
 /* ---------- Historik ---------- */

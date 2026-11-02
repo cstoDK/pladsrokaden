@@ -148,25 +148,36 @@ export function PrintArk() {
   const { klasse, plan } = valg;
   const navn = navneOpslag(klasse);
   const l = plan.lokale;
-  // Siden er 277 × 190 mm; overskriften tager ca. 14 mm.
-  const u = Math.min(277 / l.bredde, 172 / l.hoejde);
+  const grupper = planGrupper(l, plan.placering);
   const titel = `${planTitel(plan.dato)}${l.navn ? `, lokale ${l.navn}` : ''}`;
-  return (
-    <div class="print-ark" aria-hidden="true">
-      <section class="print-side">
+  // Alt skal være på én side. Siden er 277 × 190 mm på tværs og 190 × 277 mm
+  // på højkant; der laves et ark til hver, og browseren viser det, der passer
+  // til papiret. Overskriften tager ca. 12 mm, grupperne én linje pr. to grupper.
+  const ark = (bredde: number, hoejde: number, linje: number) => {
+    const grupperHoejde = Math.ceil(grupper.length / 2) * linje;
+    const u = Math.min(bredde / l.bredde, (hoejde - 12 - 6 - grupperHoejde - 4) / l.hoejde);
+    return (
+      <>
         <div class="print-hoved">
           <strong>Siddepladser, {klasse.navn}</strong>
           <span>{titel}</span>
         </div>
         <Lokaletegning lokale={l} placering={plan.placering} navn={navn} klasse="print" maal={{ u, skrift: 9, enhed: 'mm' }} />
-      </section>
-      <section class="print-side">
-        <div class="print-hoved">
-          <strong>Netværksgrupper og makkerpar, {klasse.navn}</strong>
-          <span>{titel}</span>
-        </div>
-        <GruppeOversigt plan={plan} navn={navn} />
-      </section>
+        <ul class="print-grupper">
+          {grupper.map((g) => (
+            <li key={g.nr}>
+              <span class="print-farve" style={{ background: gruppefarve(g.nr) }} />
+              <strong>Gruppe {g.nr}:</strong> {g.par.map((p) => p.map(navn).join(' og ')).join(' · ')}
+            </li>
+          ))}
+        </ul>
+      </>
+    );
+  };
+  return (
+    <div class="print-ark" aria-hidden="true">
+      <section class="print-side print-tvaers">{ark(277, 190, 6)}</section>
+      <section class="print-side print-hoej">{ark(190, 277, 11)}</section>
     </div>
   );
 }
