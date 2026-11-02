@@ -316,3 +316,25 @@ describe('Ludus-deltagerliste som CSV eller kopieret tabel', () => {
     expect(u.elever.map((e) => e.fornavn)).toEqual(['Anna', 'Bo', 'Mikael-Eric', 'Nellie']);
   });
 });
+
+describe('tabel kopieret med én celle pr. linje (Safari og Ludus)', () => {
+  // Opdigtede navne og tal; tomme celler mangler, som når Safari kopierer.
+  const tekst = [
+    'K.nr.', 'K.id.', 'Fornavn', 'Efternavn', 'Tilmeldt', 'Ophørt', 'Pause', 'Bemærkning', 'F.dato',
+    '11111', 'Anna Marie', 'Testesen', '26.10.26', '010110',
+    '22222', 'Bo Emil Bruun', 'Prøvesen', '26.10.26', '020210',
+    '33333', 'Nellie', 'Damgaard-Eksempel', '27.10.26', '030310',
+    '44444', 'Søren', 'Bùi', '26.10.26', '040410',
+  ].join('\n');
+
+  it('bruger kun fornavne og tæller hver elev én gang', () => {
+    const u = udtraekFraTekst(tekst);
+    expect(u.elever.map((e) => e.fornavn)).toEqual(['Anna', 'Bo', 'Nellie', 'Søren']);
+    expect(JSON.stringify(u)).not.toMatch(/Testesen|Prøvesen|Damgaard|Bùi/);
+  });
+
+  it('virker også med tomme linjer for tomme celler', () => {
+    const u = udtraekFraTekst(tekst.replace(/\n(\d{5})\n/g, '\n$1\n\n'));
+    expect(u.elever.map((e) => e.fornavn)).toEqual(['Anna', 'Bo', 'Nellie', 'Søren']);
+  });
+});

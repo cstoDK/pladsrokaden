@@ -125,6 +125,10 @@ export function udtraekFraTekst(tekst: string): Udtraek {
       if (e) elever.push(e);
       else sprungetOver++;
     });
+  } else if (lodretTabel(linjer)) {
+    const u = lodretTabel(linjer)!;
+    elever.push(...u.elever);
+    sprungetOver += u.sprungetOver;
   } else {
     for (const l of linjer) {
       const e = fraFritekst(l);
@@ -133,6 +137,49 @@ export function udtraekFraTekst(tekst: string): Udtraek {
     }
   }
   return { elever: elever.map(sikr), sprungetOver };
+}
+
+/**
+ * En tabel kopieret med én celle pr. linje (Safari gør det med Ludus):
+ * overskrifterne står først, én pr. linje ("K.nr.", "Fornavn", "Efternavn",
+ * ...), og så cellerne række for række. Navnecellerne i en række står lige
+ * efter hinanden, mens tal og datoer skiller rækkerne ad. Overskrifternes
+ * rækkefølge afgør, hvilken linje der er fornavnet, så efternavne aldrig
+ * bliver til elever.
+ */
+function lodretTabel(linjer: string[]): Udtraek | null {
+  const type = (l: string) => HEADER[l.toLowerCase().replace(/[.:*]/g, '').trim()];
+  const start = linjer.findIndex((l) => type(l) !== undefined);
+  if (start < 0) return null;
+  let slut = start;
+  while (slut < linjer.length && type(linjer[slut]!) !== undefined) slut++;
+  const overskrift = linjer.slice(start, slut).map(type);
+  // Navnekolonnerne i den rækkefølge, de står i.
+  const navnetyper = overskrift.filter((t) => t === 'fornavn' || t === 'efternavn' || t === 'navn');
+  if (overskrift.length < 2 || !navnetyper.some((t) => t === 'fornavn' || t === 'navn')) return null;
+  const k: Kolonner = { headerRaekke: -1, fornavn: navnetyper.indexOf('fornavn'), efternavn: navnetyper.indexOf('efternavn'), navn: [], koen: -1, hold: -1 };
+  navnetyper.forEach((t, i) => t === 'navn' && k.navn.push(i));
+
+  const elever: UdtrukketElev[] = [];
+  let sprungetOver = slut - start;
+  let celler: string[] = [];
+  const afslut = () => {
+    for (let i = 0; i < celler.length; i += navnetyper.length) {
+      const e = fraRaekkeUdenHold(celler.slice(i, i + navnetyper.length), k);
+      if (e) elever.push(e);
+      else sprungetOver++;
+    }
+    celler = [];
+  };
+  for (const l of linjer.slice(slut)) {
+    if (erNavneagtig(rensCelle(l)) && !UDMELDT.has(l.trim().toLowerCase())) celler.push(l.trim());
+    else {
+      afslut();
+      sprungetOver++;
+    }
+  }
+  afslut();
+  return { elever, sprungetOver };
 }
 
 function sikr(e: UdtrukketElev): UdtrukketElev {
