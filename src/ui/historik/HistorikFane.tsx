@@ -67,7 +67,7 @@ export function HistorikFane(props: { klasse: Klasse }) {
         <section class="kort" aria-labelledby="elev-titel">
           <h2 id="elev-titel">Oversigt pr. elev</h2>
           <p class="daempet">
-            Tallene tæller alle {k.planer.length} gemte planer. "Mangler at være i gruppe med" er antal klassekammerater, eleven endnu
+            {k.planer.length === 1 ? 'Tallene tæller den ene gemte plan.' : `Tallene tæller alle ${k.planer.length} gemte planer.`} "Mangler at være i gruppe med" er antal klassekammerater, eleven endnu
             ikke har været i netværksgruppe med.
           </p>
           <div class="tabel-ramme" role="region" aria-label="Oversigt pr. elev (kan rulles)" tabIndex={0}>
