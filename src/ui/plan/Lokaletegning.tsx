@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { type Plads } from '../../core/kladde';
 import { type ElevId, type Lokale, type Placering, PLADSDYBDE, bordBredde, bordHoejde, forresteBorde, skabMaal } from '../../core/model';
 import { pladsGrupper, planGrupper } from '../../core/struktur';
+import { tavlePunkt, tavleVed } from '../../core/lokale';
 
 export interface Redigering {
   valgt: Plads | null;
@@ -28,6 +29,8 @@ interface Props {
   overskrift?: string;
   /** Gør mobilskabet flytbart direkte i tegningen. */
   onFlytMobilskab?: (pos: { x: number; y: number }) => void;
+  /** Gør tavlen flytbar direkte i tegningen (til en hvilken som helst væg). */
+  onFlytTavle?: (tavle: Lokale['tavle']) => void;
 }
 
 export const GRUPPEFARVER = ['#dbe8f7', '#f9dde3', '#dcf1e2', '#fbefc8', '#e8e1f7', '#fde3cf', '#d4f0f2', '#ece9e2', '#f3dcf0', '#e3efcf'];
@@ -51,6 +54,8 @@ export function Lokaletegning(props: Props) {
   const [top, setTop] = useState(300);
   const [skab, setSkab] = useState<{ x: number; y: number } | null>(null);
   const skabTraek = useRef<{ x0: number; y0: number; fra: { x: number; y: number }; flyttet: boolean } | null>(null);
+  const [nyTavle, setNyTavle] = useState<Lokale['tavle'] | null>(null);
+  const tavleTraek = useRef(false);
 
   // Hele lokalet skal kunne ses uden at rulle: det skaleres til både
   // bredden og skærmens højde. Alle navne får samme skriftstørrelse, så det
@@ -109,7 +114,49 @@ export function Lokaletegning(props: Props) {
       {props.overskrift && <h2 class="skjult">{props.overskrift}</h2>}
 
       <div class="rum" style={rumStil}>
-        <Tavle lokale={lokale} />
+        {props.onFlytTavle ? (
+          <Tavle
+            lokale={nyTavle ? { ...lokale, tavle: nyTavle } : lokale}
+            knap={{
+              'aria-label': 'Tavlen. Træk den hen til en anden væg, eller flyt den langs væggen med piletasterne.',
+              title: 'Træk tavlen derhen, hvor den hænger',
+              onPointerDown: (e: PointerEvent) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                tavleTraek.current = true;
+              },
+              onPointerMove: (e: PointerEvent) => {
+                if (!tavleTraek.current) return;
+                const r = (e.currentTarget as HTMLElement).parentElement!.getBoundingClientRect();
+                const u = r.width / lokale.bredde;
+                setNyTavle(tavleVed(lokale, (e.clientX - r.left) / u, (e.clientY - r.top) / u));
+              },
+              onPointerUp: () => {
+                tavleTraek.current = false;
+                if (nyTavle) props.onFlytTavle!(nyTavle);
+                setNyTavle(null);
+              },
+              onPointerCancel: () => {
+                tavleTraek.current = false;
+                setNyTavle(null);
+              },
+              onKeyDown: (e: KeyboardEvent) => {
+                const d: Record<string, [number, number]> = { ArrowLeft: [-0.5, 0], ArrowRight: [0.5, 0], ArrowUp: [0, -0.5], ArrowDown: [0, 0.5] };
+                const t = d[e.key];
+                if (!t) return;
+                e.preventDefault();
+                const c = tavlePunkt(lokale);
+                // Piletasterne flytter langs væggen; tavlen bliver på sin væg.
+                const vandret = lokale.tavle.vaeg === 'top' || lokale.tavle.vaeg === 'bund';
+                const langs = vandret ? { x: c.x + t[0], y: c.y } : { x: c.x, y: c.y + t[1] };
+                props.onFlytTavle!(tavleVed(lokale, langs.x, langs.y));
+              },
+            }}
+          />
+        ) : (
+          <Tavle lokale={lokale} />
+        )}
         {lokale.borde.map((bord, bi) => {
           const pladser = placering?.[bord.id] ?? new Array(bord.pladser).fill(null);
           const erForrest = forrest.has(bord.id);
@@ -259,7 +306,7 @@ function erGruppeStart(m: Map<string, Info>, bordId: string, plads: number): boo
   return true;
 }
 
-export function Tavle(props: { lokale: Lokale }) {
+export function Tavle(props: { lokale: Lokale; knap?: Record<string, unknown> }) {
   const { tavle, bredde, hoejde } = props.lokale;
   const tyk = 0.45;
   const vandret = tavle.vaeg === 'top' || tavle.vaeg === 'bund';
@@ -267,6 +314,12 @@ export function Tavle(props: { lokale: Lokale }) {
   const stil = vandret
     ? pos(start, tavle.vaeg === 'top' ? 0.2 : hoejde - tyk - 0.2, tavle.laengde, tyk)
     : pos(tavle.vaeg === 'venstre' ? 0.2 : bredde - tyk - 0.2, start, tyk, tavle.laengde);
+  if (props.knap)
+    return (
+      <button type="button" class={`tavle flytbar${vandret ? '' : ' lodret'}`} style={stil} {...props.knap}>
+        <span>Tavle</span>
+      </button>
+    );
   return (
     <div class={`tavle${vandret ? '' : ' lodret'}`} style={stil}>
       <span>Tavle</span>

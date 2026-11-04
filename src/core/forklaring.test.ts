@@ -48,4 +48,10 @@ describe('forklar', () => {
     expect(f.borde['B1']!.map((p) => p.tekst)).toContain('Ida er eneste pige i gruppe 1');
     expect(tekster(f)).toContain('1 er eneste af sit køn i gruppen');
   });
+
+  it('melder ikke "alene ved bordet" ved enkeltborde med én plads', () => {
+    const enkelt = testLokale({ antalBorde: 4, pladserPrBord: 1, bordePrRaekke: 2 });
+    const f = forklar({ elever: elever.slice(0, 4), lokale: enkelt, placering: { B1: ['a'], B2: ['b'], B3: ['c'], B4: ['d'] }, tidligere: [], holdAdskilt: [] });
+    expect(tekster(f).join()).not.toMatch(/alene/);
+  });
 });

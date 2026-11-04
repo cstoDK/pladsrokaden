@@ -27,6 +27,7 @@ export function opdater(fn: (kladde: AppData) => void): void {
 export function saetData(ny: AppData): void {
   data = ny;
   lagerFejl = !gem(data);
+  udloebFortryd();
   udsend();
 }
 
@@ -58,15 +59,17 @@ export interface Besked {
   id: number;
   tekst: string;
   fortryd?: () => void;
+  /** Fortryd gælder kun, så længe data er præcis dette. */
+  gyldigFor?: AppData;
 }
 
 let beskeder: Besked[] = [];
 let naesteId = 1;
 const beskedLyttere = new Set<() => void>();
 
-export function visBesked(tekst: string, fortryd?: () => void): void {
+export function visBesked(tekst: string, fortryd?: () => void, gyldigFor?: AppData): void {
   const id = naesteId++;
-  beskeder = [...beskeder.filter((b) => b.tekst !== tekst).slice(-2), { id, tekst, fortryd }];
+  beskeder = [...beskeder.filter((b) => b.tekst !== tekst).slice(-2), { id, tekst, fortryd, gyldigFor }];
   beskedLyttere.forEach((l) => l());
   setTimeout(() => lukBesked(id), fortryd ? 10000 : 5000);
 }
@@ -86,9 +89,24 @@ export function useBeskeder(): Besked[] {
   return beskeder;
 }
 
-/** Udfører en ændring, der kan fortrydes, og viser en besked med "Fortryd". */
+/**
+ * Udfører en ændring, der kan fortrydes, og viser en besked med "Fortryd".
+ * Fortryd sætter data tilbage til før ændringen, så det må kun kunne ske,
+ * så længe intet andet er ændret siden; ellers ville nyere arbejde (fx en
+ * gemt plan) forsvinde med. Knappen forsvinder derfor ved næste ændring.
+ */
 export function medFortryd(tekst: string, fn: (kladde: AppData) => void): void {
   const foer = data;
   opdater(fn);
-  visBesked(tekst, () => saetData(foer));
+  const efter = data;
+  visBesked(tekst, () => {
+    if (data === efter) saetData(foer);
+  }, efter);
+}
+
+/** Fjerner "Fortryd" fra beskeder, hvis data er ændret siden. */
+function udloebFortryd() {
+  if (!beskeder.some((b) => b.fortryd && b.gyldigFor && b.gyldigFor !== data)) return;
+  beskeder = beskeder.map((b) => (b.fortryd && b.gyldigFor && b.gyldigFor !== data ? { id: b.id, tekst: b.tekst } : b));
+  beskedLyttere.forEach((l) => l());
 }

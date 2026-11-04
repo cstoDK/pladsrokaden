@@ -338,3 +338,17 @@ describe('tabel kopieret med én celle pr. linje (Safari og Ludus)', () => {
     expect(u.elever.map((e) => e.fornavn)).toEqual(['Anna', 'Bo', 'Nellie', 'Søren']);
   });
 });
+
+describe('flere filformater', () => {
+  it('komma-CSV med overskrift giver fornavne, ikke efternavne', () => {
+    const u = udtraekFraTekst('Fornavn,Efternavn\nAnna,Hansen\nBo,Jensen');
+    expect(u.elever.map((e) => e.fornavn)).toEqual(['Anna', 'Bo']);
+  });
+  it('"Efternavn, Fornavn" uden overskrift virker stadig', () => {
+    expect(udtraekFraTekst('Hansen, Anna\nJensen, Bo').elever.map((e) => e.fornavn)).toEqual(['Anna', 'Bo']);
+  });
+  it('et tal alene i GF-kolonnen er et hold', () => {
+    const u = udtraekFraTekst('Fornavn\tEfternavn\tGF-hold\nAnna\tHansen\tGF02\nBo\tJensen\t3');
+    expect(u.elever.map((e) => e.hold)).toEqual(['GF02', 'GF03']);
+  });
+});

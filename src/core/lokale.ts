@@ -1,7 +1,7 @@
 // Lokaler: skabeloner, automatisk størrelse og nummerering af borde, og
 // konvertering af lokaler fra den første version af appen.
 
-import { type Bord, type Lokale, afstandTilTavle, skabMaal, bordBredde, bordHoejde, bordRaekker, nyId } from './model';
+import { type Bord, type Lokale, type Vaeg, afstandTilTavle, skabMaal, bordBredde, bordHoejde, bordRaekker, nyId } from './model';
 
 export type SkabelonId = 'raekker' | 'fire' | 'par';
 
@@ -350,4 +350,33 @@ export function antalRaekker(lokale: Lokale): number {
 function klem(x: number, min: number, max: number): number {
   if (!Number.isFinite(x)) return min;
   return Math.min(max, Math.max(min, Math.round(x)));
+}
+
+/**
+ * Hvor tavlen kommer til at hænge, når den trækkes til punktet (x, y) i
+ * lokalet: på den nærmeste væg, med midten ud for punktet (i halve pladser)
+ * og helt inde på væggen.
+ */
+export function tavleVed(l: Lokale, x: number, y: number): Lokale['tavle'] {
+  const afstande: [Vaeg, number][] = [
+    ['top', y],
+    ['bund', l.hoejde - y],
+    ['venstre', x],
+    ['hoejre', l.bredde - x],
+  ];
+  const vaeg = afstande.reduce((a, b) => (b[1] < a[1] ? b : a))[0];
+  const vandret = vaeg === 'top' || vaeg === 'bund';
+  const laengde = Math.min(l.tavle.laengde, vandret ? l.bredde : l.hoejde);
+  const max = (vandret ? l.bredde : l.hoejde) - laengde / 2;
+  const midte = Math.min(max, Math.max(laengde / 2, Math.round((vandret ? x : y) * 2) / 2));
+  return { vaeg, midte, laengde };
+}
+
+/** Tavlens midtpunkt på væggen. */
+export function tavlePunkt(l: Lokale): { x: number; y: number } {
+  const t = l.tavle;
+  if (t.vaeg === 'top') return { x: t.midte, y: 0 };
+  if (t.vaeg === 'bund') return { x: t.midte, y: l.hoejde };
+  if (t.vaeg === 'venstre') return { x: 0, y: t.midte };
+  return { x: l.bredde, y: t.midte };
 }

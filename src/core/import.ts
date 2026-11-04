@@ -108,13 +108,19 @@ export function udtraekFraTekst(tekst: string): Udtraek {
   if (medTab >= 2 && medTab >= linjer.length * 0.3) opdel = (l) => l.split('\t').map((c) => c.trim());
   // CSV fra Ludus og dansk Excel bruger semikolon; felter kan stå i anførselstegn.
   else if (medSemikolon >= 2 && medSemikolon >= linjer.length * 0.5) opdel = (l) => l.split(';').map((c) => c.trim().replace(/^"(.*)"$/, '$1').trim());
+  // Komma-CSV kendes kun på en overskrift ("Fornavn,Efternavn"), for ellers
+  // kan "Hansen, Anna" ikke skelnes fra en CSV-række.
+  else if (kommaOverskrift(linjer)) {
+    opdel = (l) => l.split(',').map((c) => c.trim().replace(/^"(.*)"$/, '$1').trim());
+  }
   else if (medMellemrum >= 2 && medMellemrum >= linjer.length * 0.5) opdel = (l) => l.trim().split(/\s{2,}/);
 
   const elever: UdtrukketElev[] = [];
   let sprungetOver = 0;
 
   if (opdel) {
-    const raekker = linjer.map((l) => (l.includes('\t') || l.includes(';') || /\S {2,}\S/.test(l) ? opdel!(l) : [l.trim()]));
+    const komma = kommaOverskrift(linjer);
+    const raekker = linjer.map((l) => (l.includes('\t') || l.includes(';') || (komma && l.includes(',')) || /\S {2,}\S/.test(l) ? opdel!(l) : [l.trim()]));
     const kolonner = findKolonner(raekker);
     raekker.forEach((celler, i) => {
       if (i === kolonner.headerRaekke) {
@@ -180,6 +186,12 @@ function lodretTabel(linjer: string[]): Udtraek | null {
   }
   afslut();
   return { elever, sprungetOver };
+}
+
+/** Starter teksten med en komma-adskilt overskrift med fornavn eller navn? */
+function kommaOverskrift(linjer: string[]): boolean {
+  const celler = (linjer[0] ?? '').split(',').map((c) => HEADER[c.trim().replace(/^"(.*)"$/, '$1').toLowerCase().replace(/[.:*]/g, '').trim()]);
+  return celler.length >= 2 && celler.some((t) => t === 'fornavn' || t === 'navn') && celler.filter(Boolean).length >= 2;
 }
 
 function sikr(e: UdtrukketElev): UdtrukketElev {
@@ -384,7 +396,9 @@ function findKolonner(raekker: string[][]): Kolonner {
 function fraRaekke(celler: string[], k: Kolonner): UdtrukketElev | null {
   const e = fraRaekkeUdenHold(celler, k);
   if (!e) return null;
-  const hold = k.hold >= 0 ? normaliserHold(celler[k.hold] ?? '') : celler.map(normaliserHold).find(Boolean);
+  // I en GF-kolonne er et tal alene også et hold: "3" er GF03.
+  const holdCelle = (celler[k.hold] ?? '').trim();
+  const hold = k.hold >= 0 ? normaliserHold(/^\d{1,2}$/.test(holdCelle) ? `GF${holdCelle}` : holdCelle) : celler.map(normaliserHold).find(Boolean);
   return hold ? { ...e, hold } : e;
 }
 

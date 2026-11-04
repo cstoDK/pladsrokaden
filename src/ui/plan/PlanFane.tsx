@@ -109,7 +109,7 @@ function GemtPlan(props: { klasse: Klasse; onFane: (f: Fane) => void; onRetLokal
         </button>
       </DelKnapper>
       <Statusliste status={f.status} onFane={props.onFane} />
-      <Lokaletegning lokale={plan.lokale} placering={plan.placering} navn={navn} overskrift="Bordplan" onFlytMobilskab={(p) => flytMobilskab(k, p)} />
+      <Lokaletegning lokale={plan.lokale} placering={plan.placering} navn={navn} overskrift="Bordplan" onFlytMobilskab={(p) => flytMobilskab(k, p)} onFlytTavle={(t) => flytTavle(k, t)} />
       <Problemliste lokale={plan.lokale} problemer={f.borde} />
       <h2 class="mellemoverskrift">Netværksgrupper og makkerpar</h2>
       <GruppeOversigt plan={plan} navn={navn} />
@@ -363,6 +363,7 @@ function KladdeEditor(props: { klasse: Klasse; lokale: Lokale; kladde: Kladde; f
         navn={navn}
         overskrift="Bordplan"
         onFlytMobilskab={(p) => flytMobilskab(k, p)}
+        onFlytTavle={(t) => flytTavle(k, t)}
         redigering={{
           valgt,
           laaste,
@@ -413,5 +414,21 @@ function flytMobilskab(k: Klasse, pos: { x: number; y: number }) {
     const plan = x?.planer[x.planer.length - 1];
     if (plan?.lokale.mobilskab) Object.assign(plan.lokale.mobilskab, pos);
     if (x?.kladde?.plan.lokale.mobilskab) Object.assign(x.kladde.plan.lokale.mobilskab, pos);
+  });
+}
+
+/**
+ * Tavlen flyttes direkte i planen, ligesom mobilskabet: i lokalet, i den
+ * gældende plan og i kladden. Eleverne bliver siddende, men hvilke borde der
+ * tæller som forrest, følger tavlen.
+ */
+function flytTavle(k: Klasse, tavle: Lokale['tavle']) {
+  opdater((d) => {
+    const lokale = d.lokaler.find((l) => l.id === k.lokaleId);
+    if (lokale) lokale.tavle = { ...tavle };
+    const x = d.klasser.find((y) => y.id === k.id);
+    const plan = x?.planer[x.planer.length - 1];
+    if (plan) plan.lokale.tavle = { ...tavle };
+    if (x?.kladde) x.kladde.plan.lokale.tavle = { ...tavle };
   });
 }

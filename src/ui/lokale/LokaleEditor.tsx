@@ -11,6 +11,8 @@ import {
   foreslaaIndstillinger,
   lavLokale,
   bordPlacering,
+  tavlePunkt,
+  tavleVed,
   kanSaettesSammen,
   normaliserLokale,
   retBordeneInd,
@@ -269,9 +271,9 @@ function RumEditor(props: {
       k.mobilskab.x = snap(k.mobilskab.x + dx);
       k.mobilskab.y = snap(k.mobilskab.y + dy);
     } else if (v.type === 'tavle') {
-      const langs = k.tavle.vaeg === 'top' || k.tavle.vaeg === 'bund' ? dx : dy;
-      const max = (k.tavle.vaeg === 'top' || k.tavle.vaeg === 'bund' ? k.bredde : k.hoejde) - k.tavle.laengde / 2;
-      k.tavle.midte = Math.min(max, Math.max(k.tavle.laengde / 2, Math.round((k.tavle.midte + langs) * 2) / 2));
+      // Tavlen følger markøren og hænger på den væg, den er nærmest.
+      const c = tavlePunkt(k);
+      k.tavle = tavleVed(k, c.x + dx, c.y + dy);
     }
   }
 
@@ -408,7 +410,7 @@ function RumEditor(props: {
             type="button"
             class={`flytbar tavle-flyt${valgt?.type === 'tavle' ? ' valgt' : ''}`}
             style={tavleStil(l)}
-            aria-label={`Tavlen, ${VAEGNAVN[l.tavle.vaeg].toLowerCase()}. Flyt langs væggen med piletasterne.`}
+            aria-label={`Tavlen, ${VAEGNAVN[l.tavle.vaeg].toLowerCase()}. Træk den hen til en anden væg, eller flyt den langs væggen med piletasterne.`}
             onPointerDown={(e) => startTraek(e, { type: 'tavle' })}
             onPointerMove={(e) => under(e, { type: 'tavle' })}
             onPointerUp={slutTraek}

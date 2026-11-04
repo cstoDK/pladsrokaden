@@ -115,7 +115,9 @@ export function forklar(input: ForklaringsInput): Forklaring {
   for (const raekke of bordRaekker(lokale)) {
     const ider = raekke.flatMap((b) => elevIderVedBord(placering, b.id));
     const liste = borde[raekke[0]!.id]!;
-    if (ider.length === 1) {
+    // Et enkeltbord (én plads) kan ikke andet; der er eleven i gruppe med naboerne.
+    const pladser = raekke.reduce((sum, b) => sum + b.pladser, 0);
+    if (ider.length === 1 && pladser > 1) {
       ensomme++;
       liste.unshift({ niveau: 'fejl', tekst: `${n(ider[0]!)} sidder alene ved bordet`, elevIder: ider });
     }

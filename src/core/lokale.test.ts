@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bordPlacering, iGitter, retBordeneInd, kanSaettesSammen, saetSammenToOgTo, flytMobilskabFri, fraDybeBorde, fjernTomPlads, sugSammen, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
+import { bordPlacering, iGitter, tavleVed, retBordeneInd, kanSaettesSammen, saetSammenToOgTo, flytMobilskabFri, fraDybeBorde, fjernTomPlads, sugSammen, foreslaaIndstillinger, fraV1, lavLokale, normaliserLokale, sorterBorde, tilpasStoerrelse } from './lokale';
 import { bordRaekker, forresteBorde, staarSammen } from './model';
 
 describe('lavLokale', () => {
@@ -149,4 +149,15 @@ it('et trukket bord lander på en eksisterende række, selv om den ikke står i 
   expect(bordPlacering(l, b!.id, 4.2, 6.3)).toEqual({ x: 4, y: 6 });
   // Langt fra andre borde bruges gitteret.
   expect(bordPlacering(l, b!.id, 4.2, 9.2)).toEqual(iGitter(4.2, 9.2));
+});
+
+it('tavlen trækkes hen på den nærmeste væg og bliver inde på væggen', () => {
+  const l = lavLokale({ antalBorde: 4, pladserPrBord: 2, bordePrRaekke: 2 });
+  l.bredde = 12;
+  l.hoejde = 8;
+  l.tavle = { vaeg: 'top', midte: 6, laengde: 6 };
+  expect(tavleVed(l, 4.2, 0.3)).toEqual({ vaeg: 'top', midte: 4, laengde: 6 });
+  expect(tavleVed(l, 11.6, 4.1)).toEqual({ vaeg: 'hoejre', midte: 4, laengde: 6 });
+  expect(tavleVed(l, 2, 7.6)).toEqual({ vaeg: 'bund', midte: 3, laengde: 6 });
+  expect(tavleVed(l, 0.2, 1)).toEqual({ vaeg: 'venstre', midte: 3, laengde: 6 });
 });
