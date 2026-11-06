@@ -1,0 +1,83 @@
+/* Spillepladen: lavet til projektoren. Store tal, rolig baggrund, samme
+   lokaletegning og gruppefarver som i Pladsrokaden. */
+
+.spil { max-width: 1600px; margin: 0 auto; padding: 1rem clamp(1rem, 3vw, 2rem) 2rem; }
+.spil-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 2rem; margin-bottom: 1rem; }
+.spil-titel { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.spil-titel h1 { margin: 0; font-size: clamp(1.5rem, 2.6vw, 2.2rem); }
+.spil-klasse { font-weight: 700; color: var(--daempet); }
+.spil-klasse select { font-weight: 700; padding: 0.35rem 0.5rem; border: 1px solid var(--kant-staerk); border-radius: 8px; background: var(--flade); }
+.spil-kode { display: flex; align-items: baseline; gap: 0.6rem; background: var(--tekst); color: #fff; border-radius: 12px; padding: 0.35rem 1rem; }
+.spil-kode span { font-size: 0.9rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
+.spil-kode b { font-size: clamp(1.8rem, 3.4vw, 2.8rem); letter-spacing: 0.18em; line-height: 1; font-variant-numeric: tabular-nums; }
+.spil-med { margin: 0 0 0 auto; color: var(--daempet); font-size: 1.1rem; }
+.spil-med b { color: var(--tekst); font-size: 1.4rem; }
+.spil-note { background: var(--bemaerk-svag); color: var(--bemaerk); border-radius: var(--radius); padding: 0.6rem 0.9rem; margin: 0 0 1rem; }
+.spil-note a { color: inherit; font-weight: 700; }
+
+.spil-flade { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 1.5rem; align-items: start; }
+@media (max-width: 900px) { .spil-flade { grid-template-columns: minmax(0, 1fr); } }
+.spil-lokale .lokale { overflow: visible; padding-top: 0.5rem; }
+
+/* Figurens mærke på pladsen */
+.figur-maerke {
+  position: absolute; left: 50%; top: 0; transform: translate(-50%, -62%); z-index: 1;
+  min-width: 2.1em; height: 1.75em; padding: 0 0.35em; border-radius: 999px;
+  display: grid; place-items: center; font-size: clamp(0.6rem, calc(var(--u) * 0.18), 1rem); font-weight: 700; color: #fff;
+  box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(0, 0, 0, 0.3); line-height: 1; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+.figur-maerke.spillet::after {
+  content: ''; position: absolute; right: -0.25em; top: -0.25em; width: 0.7em; height: 0.7em; border-radius: 50%;
+  background: var(--ok); box-shadow: 0 0 0 2px #fff;
+}
+
+/* Stillingen */
+.spil-stilling { background: var(--flade); border: 1px solid var(--kant); border-radius: 14px; padding: 1rem 1rem 1.1rem; }
+.stilling-hoved { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-bottom: 0.6rem; }
+.stilling-hoved h2 { margin: 0; font-size: 1.4rem; }
+.runde { font-weight: 700; color: var(--daempet); }
+.stilling-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.hold {
+  display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto auto; gap: 0.3rem 0.6rem; align-items: center;
+  border-radius: 10px; padding: 0.45rem 0.6rem; background: var(--farve); border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.hold-plads { font-size: 1.5rem; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.hold-midt { min-width: 0; display: grid; gap: 0.25rem; }
+.hold-navn { display: flex; gap: 0.5rem; align-items: baseline; min-width: 0; }
+.hold-navn b { white-space: nowrap; font-size: 1.1rem; }
+.hold-elever { color: #3d3d39; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hold-bar { height: 8px; background: rgba(255, 255, 255, 0.75); border-radius: 4px; overflow: hidden; }
+.hold-bar i { display: block; height: 100%; background: var(--tekst); border-radius: 4px; transition: width 0.5s ease; }
+.hold-status { font-size: 0.82rem; color: #3d3d39; }
+.hold-point { font-size: 1.9rem; font-variant-numeric: tabular-nums; min-width: 2.5ch; text-align: right; }
+.hold-klik { display: flex; gap: 0.3rem; }
+.hold-klik .knap { min-height: 36px; padding: 0.2rem 0.55rem; background: rgba(255, 255, 255, 0.8); font-weight: 700; }
+.stilling-knapper { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+.spil-hjaelp { color: var(--daempet); font-size: 0.88rem; margin: 0.8rem 0 0; }
+@media (prefers-reduced-motion: reduce) { .hold-bar i { transition: none; } }
+
+/* Elevens side */
+.elev { max-width: 900px; margin: 0 auto; padding: 1.25rem 1rem 2rem; }
+.elev h1 { margin: 0 0 0.75rem; }
+.elev-kode { display: grid; gap: 0.6rem; max-width: 22rem; }
+.elev-kode label { font-weight: 700; }
+.elev-kode input { font-size: 2rem; letter-spacing: 0.2em; text-transform: uppercase; padding: 0.4rem 0.6rem; border: 2px solid var(--kant-staerk); border-radius: 10px; }
+.fejltekst { color: var(--fejl); margin: 0; }
+.elev-kort .rum { margin-top: 0.5rem; }
+.elev-plads { cursor: pointer; font-weight: 700; color: var(--tekst); position: relative; }
+.elev-plads:disabled { cursor: default; }
+.elev-plads:not(:disabled):hover { background: var(--accent-svag); }
+.elev-plads.taget::after { content: ''; position: absolute; right: 4px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--kant-staerk); }
+.figurer { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.6rem; }
+.figur-kort {
+  width: 100%; height: 100%; text-align: left; display: grid; gap: 0.2rem; align-content: start; padding: 0.75rem;
+  border: 1px solid var(--kant); border-radius: 12px; background: var(--flade); cursor: pointer;
+}
+.figur-kort:hover { border-color: var(--accent); background: var(--accent-svag); }
+.figur-kort span:last-child { color: var(--daempet); font-size: 0.9rem; }
+.figur-prik { width: 2.2rem; height: 2.2rem; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(0, 0, 0, 0.2); flex: none; }
+.elev-mig { display: flex; gap: 0.75rem; align-items: center; font-size: 1.1rem; }
+.elev-knapper { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.75rem 0 1.5rem; }
+.elev-test { border-top: 1px solid var(--kant); padding-top: 1rem; display: grid; gap: 0.5rem; max-width: 26rem; }
+.elev-test h2 { margin: 0; font-size: 1.15rem; }
+.elev-test p { margin: 0; }

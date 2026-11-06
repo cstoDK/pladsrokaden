@@ -3,6 +3,7 @@
 // Netværksgrupper har hver sin farve og et nummer; makkerpar er adskilt af
 // en tydelig streg.
 
+import { type ComponentChild } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { type Plads } from '../../core/kladde';
 import { type ElevId, type Lokale, type Placering, PLADSDYBDE, bordBredde, bordHoejde, forresteBorde, skabMaal } from '../../core/model';
@@ -31,6 +32,8 @@ interface Props {
   onFlytMobilskab?: (pos: { x: number; y: number }) => void;
   /** Gør tavlen flytbar direkte i tegningen (til en hvilken som helst væg). */
   onFlytTavle?: (tavle: Lokale['tavle']) => void;
+  /** Ekstra indhold på en plads (uden redigering), fx elevens figur på spillepladen. */
+  pladsTillaeg?: (bordId: string, plads: number) => ComponentChild;
 }
 
 export const GRUPPEFARVER = ['#dbe8f7', '#f9dde3', '#dcf1e2', '#fbefc8', '#e8e1f7', '#fde3cf', '#d4f0f2', '#ece9e2', '#f3dcf0', '#e3efcf'];
@@ -183,6 +186,7 @@ export function Lokaletegning(props: Props) {
                     <div key={pi} class={`plads${elevId ? '' : ' tom'}${kant}`} style={stil}>
                       {maerke}
                       <span class="plads-navn">{navn || <span class="skjult">Tom plads</span>}</span>
+                      {props.pladsTillaeg?.(bord.id, pi)}
                     </div>
                   );
                 }

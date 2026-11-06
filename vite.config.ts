@@ -38,6 +38,11 @@ export default defineConfig({
   plugins: [preact(), csp()],
   build: {
     target: 'es2022',
+    // Pladsrokaden og Spillepladen (tavlen og elevsiden) bygges sammen, så de
+    // ligger på samme adresse og Spillepladen kan læse klasserne i browseren.
+    rollupOptions: {
+      input: { main: 'index.html', spil: 'spil/index.html', elev: 'spil/elev.html' },
+    },
     assetsInlineLimit: 0,
     modulePreload: { polyfill: false },
   },

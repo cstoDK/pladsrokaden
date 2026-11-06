@@ -108,6 +108,15 @@ Har klasselisten en kolonne med grundforløbshold (fx "GF-Klasse" med "1.GF02-DI
 
 `src/core/koensgaet.ts` foreslår køn ud fra fornavnet med en kurateret navneliste i `src/core/navnedata.ts` (almindelige danske navne for årgangene i gymnasiet og navne, der er almindelige i de største indvandrergrupper). Navne, der bruges til begge køn (fx Kim, Robin, Alex, Isa, Nour), og ukendte navne gættes ikke. De markeres "Vælg køn" på kontrolskærmen. Et køn, læreren har valgt, eller som stod i den indsatte liste ("Ida P" eller en Køn-kolonne), overskrives aldrig. Listen kan udvides ved at tilføje navne i `navnedata.ts`. En test sikrer, at intet navn står som både pige- og drengenavn.
 
+## Spillepladen
+
+`spil/index.html` viser klassens seneste bordplan som spilleplade på projektoren. Netværksgrupperne er hold. Eleverne åbner `spil/elev.html` (eller et spil), skriver koden fra tavlen, trykker på deres plads og vælger en figur. Spillene sender point, og læreren kan give point med et klik.
+
+- **Point:** hvert resultat regnes om til procent af det, spillet kan give. En gruppes runde er gennemsnittet for de elever i gruppen, der er med (op til 100). Elever, der er med, men ikke har spillet, tæller som 0. Klikpoint lægges oven i. Logikken står i `src/spil/pointtavle.ts` med tests.
+- **Databeskyttelse:** Spillepladen læser klasserne fra Pladsrokaden i samme browser. Over forbindelsen sendes kun lokalets borde, pladser ("bordId#plads"), figurer og point, aldrig navne. Navnet slås op på lærerens computer. Beskederne læses strengt (`src/spil/protokol.ts`).
+- **Forbindelse:** i denne version mellem faner i samme browser (BroadcastChannel), så intet sendes over netværket. En server-forbindelse til elevernes egne computere kommer i næste version og skal kun opfylde interfacet i `src/spil/forbindelse.ts`.
+- **Figurer:** egne, opdigtede figurer i `src/spil/figurer.ts`. Ingen kendte figurer.
+
 ## Udgivelse
 
 ### GitHub Pages
