@@ -15,6 +15,7 @@ import { findFigur, figurInitialer } from '../figurer';
 import { type Forbindelse, lokalForbindelse, nyKode } from '../forbindelse';
 import { type GruppePladser, type Stand, fortrydKlik, givKlik, modtagResultat, nulstil, nyRunde, stilling, tilmeld, tomStand } from '../pointtavle';
 import { lavKort, pladsNoegle } from '../protokol';
+import { brugLokal, serverForbindelse } from '../server';
 
 const NOEGLE = 'spillepladen.v1';
 
@@ -79,7 +80,25 @@ export function Spilleplade() {
   standRef.current = stand;
   const sendKort = () => forb.current?.send({ t: 'kort', kort, optagne: [...optagne], taget: Object.keys(standRef.current.deltagere) });
   useEffect(() => {
-    const f = lokalForbindelse(kode);
+    const senestNoegle = `spillepladen.senest.${kode}`;
+    let senest: string | null = null;
+    try {
+      senest = localStorage.getItem(senestNoegle);
+    } catch {
+      senest = null;
+    }
+    const f = brugLokal()
+      ? lokalForbindelse(kode)
+      : serverForbindelse(kode, 'tavle', {
+          senest,
+          vedNoegle: (k) => {
+            try {
+              localStorage.setItem(senestNoegle, k);
+            } catch {
+              // Ikke afgørende.
+            }
+          },
+        });
     forb.current = f;
     const stop = f.paaBesked((b) => {
       if (b.t === 'hvem') sendKort();
@@ -137,7 +156,7 @@ export function Spilleplade() {
     );
   };
 
-  const elevAdresse = `elev.html#${kode}`;
+  const elevAdresse = `elev.html${brugLokal() ? '?lokal' : ''}#${kode}`;
 
   return (
     <div class="spil">

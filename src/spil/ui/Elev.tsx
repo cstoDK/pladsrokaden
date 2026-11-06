@@ -8,6 +8,7 @@ import { Tavle, pos } from '../../ui/plan/Lokaletegning';
 import { FIGURER, findFigur } from '../figurer';
 import { type Forbindelse, lokalForbindelse, normaliserKode, nytEnhedsId } from '../forbindelse';
 import { type Kort, type PladsNoegle, kortSomLokale, pladsNoegle } from '../protokol';
+import { brugLokal, serverForbindelse } from '../server';
 
 interface Mig {
   enhed: string;
@@ -52,7 +53,7 @@ export function Elev() {
 
   useEffect(() => {
     if (!mig.kode) return;
-    const f = lokalForbindelse(mig.kode);
+    const f = brugLokal() ? lokalForbindelse(mig.kode) : serverForbindelse(mig.kode, 'elev');
     forb.current = f;
     const stop = f.paaBesked((b) => {
       if (b.t === 'kort') setKort({ kort: b.kort, optagne: new Set(b.optagne), taget: new Set(b.taget) });

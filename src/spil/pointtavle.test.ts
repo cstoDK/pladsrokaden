@@ -126,3 +126,19 @@ describe('protokol', () => {
     });
   });
 });
+
+describe('server-hændelser', async () => {
+  const { laesHaendelse, laesKortHaendelse } = await import('./server');
+  it('læser en samlet put i nøgleorden og enkelte beskeder', () => {
+    const alt = laesHaendelse('put', JSON.stringify({ path: '/', data: { '-b': 'y', '-a': 'x', '-c': 3 } }));
+    expect(alt.map((x) => x.noegle)).toEqual(['-a', '-b']);
+    expect(laesHaendelse('put', JSON.stringify({ path: '/-z', data: 'z' }))).toEqual([{ noegle: '-z', tekst: 'z' }]);
+    expect(laesHaendelse('keep-alive', 'null')).toEqual([]);
+    expect(laesHaendelse('put', 'ikke json')).toEqual([]);
+  });
+  it('læser kortet og afviser andet', () => {
+    const kort = { t: 'kort', kort: { navn: '', bredde: 5, hoejde: 5, borde: [], tavle: { vaeg: 'top', midte: 2, laengde: 2 }, mobilskab: null }, optagne: [], taget: [] };
+    expect(laesKortHaendelse('put', JSON.stringify({ path: '/', data: { json: JSON.stringify(kort), tid: 1 } }))?.t).toBe('kort');
+    expect(laesKortHaendelse('put', JSON.stringify({ path: '/', data: { json: '{"t":"hvem"}', tid: 1 } }))).toBeNull();
+  });
+});

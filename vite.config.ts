@@ -17,6 +17,8 @@ export const CSP = [
   "form-action 'none'",
 ].join('; ');
 
+export const SPIL_DATABASE = 'https://spillepladen-984b5-default-rtdb.europe-west1.firebasedatabase.app';
+
 // Sættes kun i det byggede site. Udviklingsserveren bruger inline-scripts
 // til genindlæsning, som CSP'en (med vilje) ville blokere.
 function csp(): Plugin {
@@ -25,8 +27,11 @@ function csp(): Plugin {
     apply: 'build',
     transformIndexHtml: {
       order: 'post',
-      handler: (html) =>
-        html.replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`),
+      // Spillepladens sider må desuden tale med spillets database (kun den).
+      handler: (html, ctx) => {
+        const csp = ctx.filename.includes('/spil/') ? CSP.replace("connect-src 'self'", `connect-src 'self' ${SPIL_DATABASE}`) : CSP;
+        return html.replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${csp}" />`);
+      },
     },
   };
 }
