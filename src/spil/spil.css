@@ -81,3 +81,11 @@
 .elev-test { border-top: 1px solid var(--kant); padding-top: 1rem; display: grid; gap: 0.5rem; max-width: 26rem; }
 .elev-test h2 { margin: 0; font-size: 1.15rem; }
 .elev-test p { margin: 0; }
+.elev-spil { display: grid; gap: 0.5rem; margin-bottom: 1.5rem; }
+.elev-spil h2 { margin: 0; font-size: 1.25rem; }
+.elev-spil p { margin: 0; }
+.spil-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.spil-liste li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.spil-liste a { text-decoration: none; }
+.spil-liste span { color: var(--daempet); }
+.elev-test summary { cursor: pointer; font-weight: 700; color: var(--daempet); }

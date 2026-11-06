@@ -19,6 +19,9 @@ interface Mig {
 
 const NOEGLE = 'spillepladen.elev.v1';
 
+/** Spil, der kan sende point. De ligger ved siden af elevsiden og bruger klient.js. */
+const SPIL = [{ navn: 'Counter-Norm', adresse: 'counter-norm.html', om: 'Samfundsfag, kapitel 2: socialisering og identitet' }];
+
 function hentMig(): Mig | null {
   try {
     const m = JSON.parse(sessionStorage.getItem(NOEGLE) ?? 'null') as Mig | null;
@@ -162,8 +165,23 @@ export function Elev() {
         </button>
       </div>
 
-      <section class="elev-test" aria-labelledby="test-titel">
-        <h2 id="test-titel">Afprøv: send et resultat</h2>
+      <section class="elev-spil" aria-labelledby="spil-titel">
+        <h2 id="spil-titel">Spil</h2>
+        <p>Dine point går til din gruppe på tavlen, når du er færdig.</p>
+        <ul class="spil-liste">
+          {SPIL.map((x) => (
+            <li key={x.adresse}>
+              <a class="knap knap-primaer knap-stor" href={x.adresse}>
+                {x.navn}
+              </a>
+              <span>{x.om}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <details class="elev-test">
+        <summary>Afprøv uden et spil</summary>
         <p>Sådan sender et spil point til tavlen. Her vælger du selv, hvor mange af 10 mulige.</p>
         <label for="point">
           Point: <b>{point}</b> af 10
@@ -180,7 +198,7 @@ export function Elev() {
           Send resultatet
         </button>
         <p role="status">{sendt}</p>
-      </section>
+      </details>
     </main>
   );
 }
